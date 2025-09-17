@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+
+{% block title %}Radio planas - {{ plan.campaign_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Header Section -->
+    <div class="bg-white border-bottom p-3 mb-3">
+        <div class="row">
+            <div class="col-md-3">
+                <small class="text-muted">Agentūra:</small><br>
+                <strong>BPN LT</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Klientas:</small><br>
+                <strong>{{ plan.client_brand_name }}</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Produktas:</small><br>
+                <strong>{{ plan.campaign_name }}</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Tikslinė grupė:</small><br>
+                <strong>{{ plan.target_audience }}</strong>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-md-3">
+                <small class="text-muted">Kampanija:</small><br>
+                <strong>{{ plan.campaign_name }}</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Laikotarpis:</small><br>
+                <strong>{{ plan.start_date }} - {{ plan.end_date }}</strong>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Šalis:</small><br>
+                <strong>Lietuva</strong>
+            </div>
+            <div class="col-md-3 text-end">
+                <a href="/api/plans/{{ plan.id }}/export" class="btn btn-primary btn-sm">
+                    <i class="bi bi-download"></i> Eksportuoti
+                </a>
+                <a href="/planning/new" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Atgal
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrollable Calendar Header -->
+    <div class="calendar-container mb-3">
+        <div class="calendar-header bg-light border p-2">
+            <div class="d-flex align-items-center mb-2">
+                <button type="button" class="btn btn-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#addSpotModal">
+                    <i class="bi bi-plus"></i> Pridėti spotą
+                </button>
+                <span class="text-muted">Kalendorius: {{ plan.start_date }} - {{ plan.end_date }}</span>
+            </div>
+        </div>
+
+        <div class="calendar-scroll-container">
+            <div class="calendar-dates" id="calendarDates">
+                <!-- Calendar dates will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel-style Planning Table -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm radio-planning-table">
+                <thead class="table-light">
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle;">Kanalas</th>
+                        <th rowspan="2" style="vertical-align: middle;">Laikas</th>
+                        <th rowspan="2" style="vertical-align: middle;">Savaitės<br>diena</th>
+                        <th rowspan="2" style="vertical-align: middle;">Spec.<br>pozicija</th>
+                        <th rowspan="2" style="vertical-align: middle;">Klipų<br>skaičius</th>
+                        <th rowspan="2" style="vertical-align: middle;">Klipo<br>trukmė</th>
+                        <th rowspan="2" style="vertical-align: middle;">GRP</th>
+                        <th rowspan="2" style="vertical-align: middle;">TRP</th>
+                        <th rowspan="2" style="vertical-align: middle;">Viso<br>GRP</th>
+                        <th rowspan="2" style="vertical-align: middle;">Viso<br>TRP</th>
+                        <th rowspan="2" style="vertical-align: middle;">Affinity</th>
+                        <th rowspan="2" style="vertical-align: middle;">1 sec TRP<br>kaina</th>
+                        <th rowspan="2" style="vertical-align: middle;">Įkainis</th>
+                        <th rowspan="2" style="vertical-align: middle;">Antkainis</th>
+                        <th rowspan="2" style="vertical-align: middle;">Antkainis<br>padidintas</th>
+                        <th rowspan="2" style="vertical-align: middle;">Klipo kaina<br>EUR</th>
+                        <th rowspan="2" style="vertical-align: middle;">Kaina po<br>nuolaidos EUR</th>
+                        <th rowspan="2" style="vertical-align: middle;">Viso kaina<br>iki nuolaidos</th>
+                        <th rowspan="2" style="vertical-align: middle;">Viso kaina<br>po nuolaidos</th>
+                        <th rowspan="2" style="vertical-align: middle;">Nuolaida %</th>
+                        <!-- Calendar date headers will be added here -->
+                    </tr>
+                    <tr class="calendar-date-row">
+                        <!-- Date headers -->
+                        {% for date in calendar_data.dates %}
+                            <th class="calendar-date-header">{{ date.strftime('%m/%d') }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody id="planningTableBody">
+                    <!-- Radio station time slots will be populated here -->
+                    {% for station in stations %}
+                        {% if not loop.first %}
+                            <!-- Station separator row -->
+                            <tr class="station-separator">
+                                <td colspan="{{ 20 + calendar_data.dates|length }}" style="height: 20px; background-color: #f8f9fa; border: none;"></td>
+                            </tr>
+                        {% endif %}
+
+                        <!-- Station header row -->
+                        <tr class="station-header">
+                            <td colspan="{{ 20 + calendar_data.dates|length }}" style="background-color: #e9ecef; font-weight: bold; text-align: center; padding: 8px;">
+                                {{ station.name }}
+                            </td>
+                        </tr>
+
+                        {% for time_slot in time_slots %}
+                            <tr class="planning-row station-{{ station.id }}-row" data-station-id="{{ station.id }}" data-time-slot="{{ time_slot }}">
+                                <td>{{ station.name }}</td>
+                                <td>{{ time_slot }}</td>
+                                <td>I-VII</td>
+                                <td>0</td>
+                                <td class="spot-count">0</td>
+                                <td>30</td>
+                                <td class="grp">0</td>
+                                <td class="trp">0</td>
+                                <td class="total-grp">0</td>
+                                <td class="total-trp">0</td>
+                                <td class="affinity">0</td>
+                                <td class="trp-price">0</td>
+                                <td class="base-price">0</td>
+                                <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1.0) }}</td>
+                                <td class="price-with-index">0</td>
+                                <td class="clip-price">0</td>
+                                <td class="final-price">0</td>
+                                <td class="total-before-discount">0</td>
+                                <td class="total-after-discount">0</td>
+                                <td class="discount-percent">{{ plan.our_discount + plan.client_discount }}%</td>
+                                <!-- Calendar cells for each date -->
+                                {% for date in calendar_data.dates %}
+                                    <td class="calendar-cell" data-date="{{ date.isoformat() }}" onclick="toggleSpot(this)">
+                                        <span class="spot-indicator"></span>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+
+                        <!-- Station totals row -->
+                        <tr class="station-totals" data-station-id="{{ station.id }}" style="background-color: #fff3cd; font-weight: bold;">
+                            <td colspan="2" style="text-align: right; padding-right: 10px;">VISO:</td>
+                            <td></td>
+                            <td></td>
+                            <td class="station-total-spots" id="station-{{ station.id }}-total-spots">0</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="station-total-grp" id="station-{{ station.id }}-total-grp">0</td>
+                            <td class="station-total-trp" id="station-{{ station.id }}-total-trp">0</td>
+                            <td class="station-total-affinity" id="station-{{ station.id }}-total-affinity">0</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="station-total-before-discount" id="station-{{ station.id }}-total-before-discount">0</td>
+                            <td class="station-total-after-discount" id="station-{{ station.id }}-total-after-discount">0</td>
+                            <td></td>
+                            <!-- Empty calendar cells for totals row -->
+                            {% for date in calendar_data.dates %}
+                                <td></td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Spot Modal -->
+<div class="modal fade" id="addSpotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pridėti spotą</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSpotForm">
+                    <div class="mb-3">
+                        <label for="stationSelect" class="form-label">Radijo stotis</label>
+                        <select class="form-select" id="stationSelect" required>
+                            <option value="">Pasirinkite stotį</option>
+                            {% for station in stations %}
+                                <option value="{{ station.id }}">{{ station.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dateInput" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="dateInput"
+                               min="{{ plan.start_date }}" max="{{ plan.end_date }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="timeSlotSelect" class="form-label">Laiko tarpas</label>
+                        <select class="form-select" id="timeSlotSelect" required>
+                            <option value="">Pasirinkite laiką</option>
+                            {% for slot in time_slots %}
+                                <option value="{{ slot }}">{{ slot }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="spotCount" class="form-label">Spotų skaičius</label>
+                        <input type="number" class="form-control" id="spotCount" value="1" min="1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                <button type="button" class="btn btn-primary" onclick="addSpot()">Pridėti</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Ensure GRP/TRP cells can display decimal values properly */
+.grp, .trp, .total-grp, .total-trp, .affinity {
+    min-width: 70px;
+    white-space: nowrap;
+    text-align: center;
+    font-family: monospace;
+}
+
+/* Ensure station totals cells also display properly */
+.station-total-grp, .station-total-trp, .station-total-affinity {
+    min-width: 70px;
+    white-space: nowrap;
+    text-align: center;
+    font-family: monospace;
+}
+
+/* Improve overall table cell spacing */
+.radio-planning-table td {
+    padding: 4px 6px;
+    font-size: 13px;
+}
+
+/* Make numeric cells consistent */
+.spot-count, .price-cell, .base-price, .final-price, .total-before-discount, .total-after-discount {
+    text-align: center;
+    font-family: monospace;
+    min-width: 50px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Generate calendar dates on page load
+document.addEventListener('DOMContentLoaded', function() {
+    generateCalendarDates();
+    loadStationRatings();
+    loadExistingSpots();
+});
+
+function generateCalendarDates() {
+    const startDate = new Date('{{ plan.start_date }}');
+    const endDate = new Date('{{ plan.end_date }}');
+    const calendarContainer = document.getElementById('calendarDates');
+
+    let currentDate = new Date(startDate);
+    let html = '<div class="d-flex">';
+
+    while (currentDate <= endDate) {
+        const dateStr = currentDate.toLocaleDateString('lt-LT', { month: '2-digit', day: '2-digit' });
+        const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+
+        html += `
+            <div class="calendar-date ${isWeekend ? 'weekend' : ''}" data-date="${currentDate.toISOString().split('T')[0]}">
+                <div class="date-header">${dateStr}</div>
+                <div class="date-content"></div>
+            </div>
+        `;
+
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    html += '</div>';
+    calendarContainer.innerHTML = html;
+}
+
+function loadStationRatings() {
+    // Get all unique station IDs from the table
+    const stationRows = document.querySelectorAll('.planning-row');
+    const stationIds = new Set();
+
+    stationRows.forEach(row => {
+        const stationId = row.dataset.stationId;
+        if (stationId) {
+            stationIds.add(stationId);
+        }
+    });
+
+    // Load ratings for each station
+    stationIds.forEach(stationId => {
+        fetch(`/api/radio-stations/${stationId}/ratings?target_audience={{ plan.target_audience }}`)
+            .then(response => response.json())
+            .then(ratings => {
+                applyStationRatings(stationId, ratings);
+            })
+            .catch(error => {
+                console.error(`Error loading ratings for station ${stationId}:`, error);
+            });
+    });
+}
+
+function applyStationRatings(stationId, ratings) {
+    // Find all rows for this station
+    const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+
+    stationRows.forEach(row => {
+        const timeSlot = row.dataset.timeSlot;
+        if (!timeSlot) return;
+
+        // Find matching rating for this time slot
+        const rating = ratings.find(r => r.time_slot === timeSlot && !r.is_weekend);
+
+        if (rating) {
+            // Update GRP and TRP values
+            const grpCell = row.querySelector('.grp');
+            const trpCell = row.querySelector('.trp');
+            const affinityCell = row.querySelector('.affinity');
+
+            if (grpCell) grpCell.textContent = rating.grp.toFixed(2);
+            if (trpCell) trpCell.textContent = rating.trp.toFixed(2);
+            if (affinityCell) affinityCell.textContent = rating.affinity.toFixed(2);
+        }
+    });
+}
+
+function toggleSpot(cell) {
+    const row = cell.closest('tr');
+    const stationId = row.dataset.stationId;
+    const timeSlot = row.dataset.timeSlot;
+    const date = cell.dataset.date;
+
+    // Toggle spot indicator
+    const indicator = cell.querySelector('.spot-indicator');
+    const currentCount = parseInt(indicator.textContent) || 0;
+    const newCount = currentCount > 0 ? 0 : 1;
+
+    indicator.textContent = newCount > 0 ? newCount : '';
+    cell.classList.toggle('has-spot', newCount > 0);
+
+    // Update totals
+    updateRowTotals(row);
+}
+
+function updateRowTotals(row) {
+    const calendarCells = row.querySelectorAll('.calendar-cell');
+    let totalSpots = 0;
+
+    calendarCells.forEach(cell => {
+        const count = parseInt(cell.querySelector('.spot-indicator').textContent) || 0;
+        totalSpots += count;
+    });
+
+    row.querySelector('.spot-count').textContent = totalSpots;
+    row.querySelector('.total-grp').textContent = totalSpots * parseFloat(row.querySelector('.grp').textContent || 0);
+    row.querySelector('.total-trp').textContent = totalSpots * parseFloat(row.querySelector('.trp').textContent || 0);
+
+    // Update station totals after updating row totals
+    const stationId = row.dataset.stationId;
+    updateStationTotals(stationId);
+}
+
+function updateStationTotals(stationId) {
+    const stationRows = document.querySelectorAll(`.station-${stationId}-row`);
+    let totalSpots = 0;
+    let totalGrp = 0;
+    let totalTrp = 0;
+    let totalBeforeDiscount = 0;
+    let totalAfterDiscount = 0;
+
+    stationRows.forEach(row => {
+        totalSpots += parseInt(row.querySelector('.spot-count').textContent) || 0;
+        totalGrp += parseFloat(row.querySelector('.total-grp').textContent) || 0;
+        totalTrp += parseFloat(row.querySelector('.total-trp').textContent) || 0;
+        totalBeforeDiscount += parseFloat(row.querySelector('.total-before-discount').textContent) || 0;
+        totalAfterDiscount += parseFloat(row.querySelector('.total-after-discount').textContent) || 0;
+    });
+
+    // Calculate affinity (TRP / GRP)
+    const totalAffinity = totalGrp > 0 ? (totalTrp / totalGrp).toFixed(2) : 0;
+
+    // Update station total cells
+    document.getElementById(`station-${stationId}-total-spots`).textContent = totalSpots;
+    document.getElementById(`station-${stationId}-total-grp`).textContent = totalGrp.toFixed(2);
+    document.getElementById(`station-${stationId}-total-trp`).textContent = totalTrp.toFixed(2);
+    document.getElementById(`station-${stationId}-total-affinity`).textContent = totalAffinity;
+    document.getElementById(`station-${stationId}-total-before-discount`).textContent = totalBeforeDiscount.toFixed(2);
+    document.getElementById(`station-${stationId}-total-after-discount`).textContent = totalAfterDiscount.toFixed(2);
+}
+
+function loadExistingSpots() {
+    // Load existing spots from the plan
+    fetch(`/api/plans/{{ plan.id }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.spots) {
+                data.spots.forEach(spot => {
+                    const row = document.querySelector(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"]`);
+                    if (row) {
+                        const cell = row.querySelector(`td[data-date="${spot.date}"]`);
+                        if (cell) {
+                            const indicator = cell.querySelector('.spot-indicator');
+                            indicator.textContent = spot.spot_count;
+                            cell.classList.add('has-spot');
+                        }
+                        updateRowTotals(row);
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('Error loading spots:', error));
+}
+
+function addSpot() {
+    const stationId = document.getElementById('stationSelect').value;
+    const date = document.getElementById('dateInput').value;
+    const timeSlot = document.getElementById('timeSlotSelect').value;
+    const spotCount = parseInt(document.getElementById('spotCount').value);
+
+    const spotData = {
+        station_id: parseInt(stationId),
+        date: date,
+        time_slot: timeSlot,
+        spot_count: spotCount
+    };
+
+    fetch('/api/plans/{{ plan.id }}/spots', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(spotData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Klaida: ' + data.error);
+        } else {
+            // Update the table
+            const row = document.querySelector(`tr[data-station-id="${stationId}"][data-time-slot="${timeSlot}"]`);
+            if (row) {
+                const cell = row.querySelector(`td[data-date="${date}"]`);
+                if (cell) {
+                    const indicator = cell.querySelector('.spot-indicator');
+                    indicator.textContent = spotCount;
+                    cell.classList.add('has-spot');
+                    updateRowTotals(row);
+                }
+            }
+
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addSpotModal'));
+            modal.hide();
+
+            // Reset form
+            document.getElementById('addSpotForm').reset();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Nepavyko pridėti spoto');
+    });
+}
+</script>
+
+<style>
+.calendar-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.calendar-scroll-container {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.calendar-dates .d-flex {
+    min-width: max-content;
+}
+
+.calendar-date {
+    min-width: 60px;
+    border-right: 1px solid #dee2e6;
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.calendar-date.weekend {
+    background-color: #f8f9fa;
+}
+
+.radio-planning-table {
+    font-size: 11px;
+}
+
+.radio-planning-table th,
+.radio-planning-table td {
+    min-width: 50px;
+    padding: 4px 6px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.calendar-cell {
+    cursor: pointer;
+    position: relative;
+    width: 60px;
+    height: 30px;
+}
+
+.calendar-cell:hover {
+    background-color: #e9ecef;
+}
+
+.calendar-cell.has-spot {
+    background-color: #d4edda;
+}
+
+.spot-indicator {
+    font-weight: bold;
+    color: #155724;
+}
+
+.calendar-date-header {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 10px;
+    width: 60px;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+</style>
+{% endblock %}

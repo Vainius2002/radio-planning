@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Radijo stotys - Radio Planning{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Radijo stotys</h1>
+            <div>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addGroupModal">
+                    <i class="bi bi-plus-circle"></i> Nauja grupė
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for group in groups %}
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ group.name }} ({{ group.stations.count() }})</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-light btn-sm add-station-to-group"
+                                data-group-id="{{ group.id }}"
+                                data-group-name="{{ group.name }}">
+                            <i class="bi bi-plus-circle"></i> Pridėti stotį
+                        </button>
+                        <a href="{{ url_for('main.group_seasonal_adjustments', group_id=group.id) }}"
+                           class="btn btn-warning btn-sm"
+                           title="Sez. antkainiai">
+                            <i class="bi bi-calendar3-week"></i> Sez. antkainiai
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for station in group.stations %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ station.name }}
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('main.station_prices', station_id=station.id) }}"
+                               class="btn btn-outline-info btn-sm" title="Peržiūrėti reitingus">
+                                Reitingai
+                            </a>
+                            <a href="{{ url_for('main.station_pricing', station_id=station.id) }}"
+                               class="btn btn-outline-success btn-sm" title="Peržiūrėti įkainius">
+                                Įkainiai
+                            </a>
+                            <button class="btn btn-outline-danger btn-sm delete-station"
+                                    data-station-id="{{ station.id }}"
+                                    data-station-name="{{ station.name }}"
+                                    title="Ištrinti stotį">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">
+                        <em>Nėra stočių šioje grupėje</em>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            Nėra sukurtų radijo grupių. Sukurkite pirmą grupę ir pradėkite pridėti radijo stotis.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add Group Modal -->
+<div class="modal fade" id="addGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nauja radijo grupė</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('main.add_group') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="group_name" class="form-label">Grupės pavadinimas</label>
+                        <input type="text" class="form-control" id="group_name" name="group_name"
+                               placeholder="Pvz.: Nauja grupė" required>
+                    </div>
+                    <div class="text-muted small">
+                        Grupės padeda organizuoti radijo stotis pagal savininką ar tipą.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Sukurti grupę
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Station Modal -->
+<div class="modal fade" id="addStationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nauja radijo stotis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('main.add_station') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="station_name" class="form-label">Stoties pavadinimas</label>
+                        <input type="text" class="form-control" id="station_name" name="station_name"
+                               placeholder="Pvz.: Nauja FM" required>
+                    </div>
+                    <div class="mb-3" id="group_selection_div">
+                        <label for="group_id" class="form-label">Grupė</label>
+                        <select class="form-select" id="group_id" name="group_id" required>
+                            <option value="">-- Pasirinkite grupę --</option>
+                            {% for group in groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" id="selected_group_id" name="selected_group_id" value="">
+                    {% if not groups %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Pirmiausia sukurkite bent vieną radijo grupę.
+                    </div>
+                    {% endif %}
+                    <div class="text-muted small">
+                        Naujai stočiai bus automatiškai sukurti pagrindinio įkainiai visiems laiko intervalams.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-primary" {{ 'disabled' if not groups }}>
+                        <i class="bi bi-plus-circle"></i> Sukurti stotį
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteStationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ištrinti radijo stotį</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Ar tikrai norite ištrinti radijo stotį <strong id="deleteStationName"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Dėmesio!</strong> Bus ištrinti visi stoties įkainiai ir reitingai.
+                    Šis veiksmas negrįžtamas.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                <form id="deleteStationForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Ištrinti
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    console.log('JavaScript loaded');
+
+    // Handle delete station clicks
+    $('.delete-station').click(function() {
+        const stationId = $(this).data('station-id');
+        const stationName = $(this).data('station-name');
+
+        $('#deleteStationName').text(stationName);
+        $('#deleteStationForm').attr('action', '/stations/' + stationId + '/delete');
+
+        $('#deleteStationModal').modal('show');
+    });
+
+    // Handle add station to group clicks
+    $('.add-station-to-group').click(function() {
+        console.log('Add station button clicked');
+        const groupId = $(this).data('group-id');
+        const groupName = $(this).data('group-name');
+        console.log('Group ID:', groupId, 'Group Name:', groupName);
+
+        // Hide group selection dropdown and use hidden field
+        $('#group_selection_div').hide();
+        $('#group_id').removeAttr('name').removeAttr('required'); // Remove name and required from select
+        $('#selected_group_id').attr('name', 'group_id').val(groupId); // Add name to hidden field
+
+        // Update modal title to show which group
+        $('#addStationModal .modal-title').text('Nauja stotis - ' + groupName);
+
+        $('#addStationModal').modal('show');
+    });
+
+    // Reset modal when it's closed
+    $('#addStationModal').on('hidden.bs.modal', function() {
+        console.log('Modal closed, resetting');
+        // Show group selection dropdown again
+        $('#group_selection_div').show();
+        $('#selected_group_id').removeAttr('name').val(''); // Remove name from hidden field
+        $('#group_id').attr('name', 'group_id').attr('required', 'required').val(''); // Add name and required back to select
+        // Reset modal title
+        $('#addStationModal .modal-title').text('Nauja radijo stotis');
+        // Clear station name
+        $('#station_name').val('');
+    });
+});
+</script>
+{% endblock %}

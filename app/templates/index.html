@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Radio Planning{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Radio Planning Dashboard</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Planai</h5>
+                <h2 class="card-text">{{ plans | length }}</h2>
+                <a href="{{ url_for('main.planning') }}" class="btn btn-light btn-sm">Peržiūrėti</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Radijo stotys</h5>
+                <h2 class="card-text">{{ stations | length }}</h2>
+                <a href="{{ url_for('main.stations') }}" class="btn btn-light btn-sm">Valdyti</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Grupės</h5>
+                <h2 class="card-text">{{ groups | length }}</h2>
+                <a href="{{ url_for('main.stations') }}" class="btn btn-light btn-sm">Peržiūrėti</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Naujas planas</h5>
+                <p class="card-text">Sukurti naują</p>
+                <a href="{{ url_for('main.new_plan') }}" class="btn btn-light btn-sm">
+                    <i class="bi bi-plus-circle"></i> Kurti
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Naujausi planai</h5>
+            </div>
+            <div class="card-body">
+                {% if plans %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Kampanija</th>
+                                <th>Klientas</th>
+                                <th>Laikotarpis</th>
+                                <th>Sukurta</th>
+                                <th>Veiksmai</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan in plans %}
+                            <tr>
+                                <td>{{ plan.campaign_name or 'N/A' }}</td>
+                                <td>{{ plan.client_brand_name or 'N/A' }}</td>
+                                <td>
+                                    {{ plan.start_date.strftime('%Y-%m-%d') }} -
+                                    {{ plan.end_date.strftime('%Y-%m-%d') }}
+                                </td>
+                                <td>{{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}"
+                                       class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> Peržiūrėti
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Nėra sukurtų planų</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Radijo grupės</h5>
+            </div>
+            <div class="card-body">
+                {% for group in groups %}
+                <div class="mb-3">
+                    <h6>{{ group.name }} ({{ group.stations.count() }} stotys)</h6>
+                    <ul class="list-unstyled ms-3">
+                        {% for station in group.stations %}
+                        <li>
+                            <i class="bi bi-broadcast"></i> {{ station.name }}
+                            <small class="text-muted">({{ station.ratings.count() }} reitingai)</small>
+                        </li>
+                        {% endfor %}
+                        {% if group.stations.count() == 0 %}
+                        <li class="text-muted">Nėra stočių</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

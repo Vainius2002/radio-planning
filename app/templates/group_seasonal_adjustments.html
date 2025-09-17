@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Sezoniniai antkainiai - {{ group.name }} - Radio Planning{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>
+                        <i class="bi bi-calendar3-week text-warning"></i>
+                        Sezoniniai antkainiai
+                    </h1>
+                    <p class="text-muted mb-0">Grupė: <strong>{{ group.name }}</strong></p>
+                </div>
+                <div>
+                    <a href="{{ url_for('main.stations') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Atgal į stotis
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar3"></i>
+                        Mėnesių antkainiai (2025 metai)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="25%">Mėnuo</th>
+                                    <th width="25%">Antkainis</th>
+                                    <th width="30%">Poveikis kainai</th>
+                                    <th width="20%">Veiksmai</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for index in indices %}
+                                <tr data-month="{{ index.month }}">
+                                    <td>
+                                        <strong>{{ index.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ index.month }} mėnuo</small>
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number"
+                                                   class="form-control index-value"
+                                                   data-id="{{ index.id }}"
+                                                   value="{{ index.index_value }}"
+                                                   min="0.5" max="2.0" step="0.01"
+                                                   style="max-width: 120px;">
+                                            <span class="input-group-text">×</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="price-impact" data-value="{{ index.index_value }}">
+                                            {% if index.index_value > 1.0 %}
+                                                <span class="text-danger">
+                                                    +{{ ((index.index_value - 1) * 100)|round(1) }}%
+                                                </span>
+                                            {% elif index.index_value < 1.0 %}
+                                                <span class="text-success">
+                                                    {{ ((index.index_value - 1) * 100)|round(1) }}%
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">Bazinė kaina</span>
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-success save-single"
+                                                data-id="{{ index.id }}"
+                                                title="Išsaugoti">
+                                            <i class="bi bi-check"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <button class="btn btn-success" id="saveAllBtn">
+                            <i class="bi bi-check-circle"></i> Išsaugoti visus
+                        </button>
+                        <button class="btn btn-outline-secondary" id="resetToDefaultBtn">
+                            <i class="bi bi-arrow-clockwise"></i> Atstatyti į 1.0
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Panel -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Apie sezoniniais antkainius
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        Šie antkainiai taikomi tik <strong>{{ group.name }}</strong> grupės stotims.
+                    </p>
+
+                    <div class="mb-3">
+                        <h6>Antkainių reikšmės:</h6>
+                        <ul class="list-unstyled small">
+                            <li><span class="badge bg-success">0.5 - 0.99</span> Nuolaida</li>
+                            <li><span class="badge bg-secondary">1.0</span> Bazinė kaina</li>
+                            <li><span class="badge bg-warning">1.01 - 1.5</span> Nedidelis antkainis</li>
+                            <li><span class="badge bg-danger">1.51 - 2.0</span> Didelis antkainis</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Pastaba:</strong> Antkainių pakeitimai paveiks naujai kuriamų planų kainas.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning"></i>
+                        Greitieji nustatymai
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Populiarūs sezonai:</label>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm quick-set"
+                                    data-months="6,7,8" data-value="0.85">
+                                <i class="bi bi-sun"></i> Vasara (-15%)
+                            </button>
+                            <button class="btn btn-outline-success btn-sm quick-set"
+                                    data-months="11,12" data-value="1.25">
+                                <i class="bi bi-gift"></i> Šventės (+25%)
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm quick-set"
+                                    data-months="1,2,3" data-value="1.15">
+                                <i class="bi bi-snow"></i> Žiema (+15%)
+                            </button>
+                            <button class="btn btn-outline-info btn-sm quick-set"
+                                    data-months="9,10" data-value="1.10">
+                                <i class="bi bi-tree"></i> Ruduo (+10%)
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="small text-muted">
+                        <strong>Stotys šioje grupėje:</strong><br>
+                        {% for station in group.stations %}
+                            • {{ station.name }}{% if not loop.last %}<br>{% endif %}
+                        {% else %}
+                            <em>Nėra stočių</em>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Update price impact when input changes
+    $('.index-value').on('input', function() {
+        const value = parseFloat($(this).val());
+        const row = $(this).closest('tr');
+        updatePriceImpact(row, value);
+    });
+
+    // Save single index
+    $('.save-single').click(function() {
+        const id = $(this).data('id');
+        const value = $(`.index-value[data-id="${id}"]`).val();
+        saveIndex(id, value, $(this));
+    });
+
+    // Save all indices
+    $('#saveAllBtn').click(function() {
+        const button = $(this);
+        button.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Išsaugoma...');
+
+        let promises = [];
+        $('.index-value').each(function() {
+            const id = $(this).data('id');
+            const value = $(this).val();
+            promises.push(saveIndexPromise(id, value));
+        });
+
+        Promise.all(promises)
+            .then(() => {
+                showAlert('success', 'Visi sezoniniai antkainiai išsaugoti sėkmingai!');
+            })
+            .catch(() => {
+                showAlert('danger', 'Klaida išsaugant antkainius');
+            })
+            .finally(() => {
+                button.prop('disabled', false).html('<i class="bi bi-check-circle"></i> Išsaugoti visus');
+            });
+    });
+
+    // Reset to default
+    $('#resetToDefaultBtn').click(function() {
+        if (confirm('Ar tikrai norite atstatyti visus antkainius į 1.0?')) {
+            $('.index-value').val('1.00');
+            $('.index-value').each(function() {
+                const row = $(this).closest('tr');
+                updatePriceImpact(row, 1.0);
+            });
+        }
+    });
+
+    // Quick set buttons
+    $('.quick-set').click(function() {
+        const months = $(this).data('months').toString().split(',');
+        const value = $(this).data('value');
+
+        months.forEach(month => {
+            const row = $(`tr[data-month="${month}"]`);
+            const input = row.find('.index-value');
+            input.val(value);
+            updatePriceImpact(row, value);
+        });
+    });
+
+    function updatePriceImpact(row, value) {
+        const impactSpan = row.find('.price-impact');
+        let html = '';
+
+        if (value > 1.0) {
+            const percent = ((value - 1) * 100).toFixed(1);
+            html = `<span class="text-danger">+${percent}%</span>`;
+        } else if (value < 1.0) {
+            const percent = ((value - 1) * 100).toFixed(1);
+            html = `<span class="text-success">${percent}%</span>`;
+        } else {
+            html = '<span class="text-muted">Bazinė kaina</span>';
+        }
+
+        impactSpan.html(html);
+    }
+
+    function saveIndex(id, value, button) {
+        const originalHtml = button.html();
+        button.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i>');
+
+        $.ajax({
+            url: '/api/seasonal-indices/' + id,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({index_value: parseFloat(value)}),
+            success: function() {
+                button.html('<i class="bi bi-check text-success"></i>');
+                setTimeout(() => {
+                    button.prop('disabled', false).html(originalHtml);
+                }, 1500);
+            },
+            error: function() {
+                showAlert('danger', 'Klaida išsaugant antkainio');
+                button.prop('disabled', false).html(originalHtml);
+            }
+        });
+    }
+
+    function saveIndexPromise(id, value) {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '/api/seasonal-indices/' + id,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({index_value: parseFloat(value)}),
+                success: resolve,
+                error: reject
+            });
+        });
+    }
+
+    function showAlert(type, message) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+
+        $('.container-fluid').prepend(alertHtml);
+
+        setTimeout(() => {
+            $('.alert').alert('close');
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

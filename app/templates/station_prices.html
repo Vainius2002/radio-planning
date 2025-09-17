@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{{ station.name }} - Įkainiai - Radio Planning{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1>{{ station.name }} - Įkainiai</h1>
+                <p class="text-muted">Grupė: {{ station.group.name }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('main.stations') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Grįžti į stotis
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-week"></i> Darbo dienų įkainiai
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Laikas</th>
+                                <th class="text-end">Kaina (€)</th>
+                                <th class="text-center">Veiksmai</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for time_slot in time_slots %}
+                            {% set weekday_price = prices|selectattr('time_slot', 'equalto', time_slot)|selectattr('is_weekend', 'equalto', False)|first %}
+                            <tr>
+                                <td><strong>{{ time_slot }}</strong></td>
+                                <td class="text-end price-cell">
+                                    {% if weekday_price %}
+                                        {{ "%.2f"|format(weekday_price.price) }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-outline-primary btn-sm edit-price"
+                                            data-time-slot="{{ time_slot }}"
+                                            data-is-weekend="false"
+                                            data-current-price="{{ weekday_price.price if weekday_price else 0 }}"
+                                            title="Redaguoti kainą">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar2-week"></i> Savaitgalio įkainiai
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Laikas</th>
+                                <th class="text-end">Kaina (€)</th>
+                                <th class="text-center">Veiksmai</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for time_slot in time_slots %}
+                            {% set weekend_price = prices|selectattr('time_slot', 'equalto', time_slot)|selectattr('is_weekend', 'equalto', True)|first %}
+                            <tr>
+                                <td><strong>{{ time_slot }}</strong></td>
+                                <td class="text-end price-cell">
+                                    {% if weekend_price %}
+                                        {{ "%.2f"|format(weekend_price.price) }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-outline-success btn-sm edit-price"
+                                            data-time-slot="{{ time_slot }}"
+                                            data-is-weekend="true"
+                                            data-current-price="{{ weekend_price.price if weekend_price else 0 }}"
+                                            title="Redaguoti kainą">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Price Modal -->
+<div class="modal fade" id="editPriceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Redaguoti kainą</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('main.update_station_price', station_id=station.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Laiko intervalas</label>
+                        <input type="text" class="form-control" id="modal_time_slot" name="time_slot" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Laikotarpis</label>
+                        <input type="text" class="form-control" id="modal_period_type" readonly>
+                        <input type="hidden" id="modal_is_weekend" name="is_weekend">
+                    </div>
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Kaina (€)</label>
+                        <input type="number" step="0.01" min="0" class="form-control"
+                               id="modal_price" name="price" required>
+                    </div>
+                    <div class="text-muted small">
+                        Kaina bus išsaugota su PVM ir galioja visiems mėnesiams.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Išsaugoti
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Handle edit price clicks
+    $('.edit-price').click(function() {
+        const timeSlot = $(this).data('time-slot');
+        const isWeekend = $(this).data('is-weekend');
+        const currentPrice = $(this).data('current-price');
+
+        $('#modal_time_slot').val(timeSlot);
+        $('#modal_is_weekend').val(isWeekend);
+        $('#modal_price').val(currentPrice);
+
+        const periodType = isWeekend ? 'Savaitgalis' : 'Darbo dienos';
+        $('#modal_period_type').val(periodType);
+
+        $('#editPriceModal').modal('show');
+    });
+});
+</script>
+{% endblock %}

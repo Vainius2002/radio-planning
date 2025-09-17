@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Planavimas - Radio Planning{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Radijo planai</h1>
+            <a href="{{ url_for('main.new_plan') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Naujas planas
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Kampanija</th>
+                        <th>Projektas</th>
+                        <th>Klientas</th>
+                        <th>Laikotarpis</th>
+                        <th>Tikslinė auditorija</th>
+                        <th>Sukurta</th>
+                        <th>Veiksmai</th>
+                    </tr>
+                </thead>
+                <tbody id="plansTable">
+                    <!-- Plans will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    loadPlans();
+
+    function loadPlans() {
+        // This would load from API, but for now using static data
+        // In real implementation, create an endpoint to get all plans
+    }
+});
+</script>
+{% endblock %}

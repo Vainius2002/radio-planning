@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Naujas planas - Radio Planning{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Naujas radijo planas</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form id="newPlanForm">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>1. Pasirinkite kampaniją</h5>
+                    <div class="mb-3">
+                        <label for="campaign" class="form-label">Kampanija iš Projects-CRM</label>
+                        <div class="dropdown w-100">
+                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" id="campaignDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                -- Pasirinkite kampaniją --
+                            </button>
+                            <ul class="dropdown-menu w-100" style="max-height: 300px; overflow-y: auto;" aria-labelledby="campaignDropdown" id="campaignDropdownMenu">
+                                <!-- Options will be loaded here -->
+                            </ul>
+                        </div>
+                        <input type="hidden" id="campaign" name="campaign" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Projektas</label>
+                        <input type="text" class="form-control" id="project_name" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Klientas</label>
+                        <input type="text" class="form-control" id="client_name" readonly>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>2. Nustatykite laikotarpį</h5>
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Pradžios data</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">Pabaigos data</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                    </div>
+
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>3. Pasirinkite radijo stotis</h5>
+                    <div class="mb-3">
+                        {% for group in groups %}
+                        <div class="mb-2">
+                            <strong>{{ group.name }}</strong>
+                            <div class="form-check ms-3">
+                                {% for station in group.stations %}
+                                <div class="form-check">
+                                    <input class="form-check-input station-checkbox" type="checkbox"
+                                           value="{{ station.id }}" id="station_{{ station.id }}"
+                                           data-station-name="{{ station.name }}">
+                                    <label class="form-check-label" for="station_{{ station.id }}">
+                                        {{ station.name }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>4. Klipų informacija</h5>
+                    <div id="clipsContainer">
+                        <div class="mb-3 clip-row">
+                            <div class="row">
+                                <div class="col-md-7">
+                                    <input type="text" class="form-control clip-name"
+                                           placeholder="Klipo pavadinimas">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="number" class="form-control clip-duration"
+                                           placeholder="Trukmė (sek)" value="30">
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-sm btn-danger remove-clip">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-success" id="addClip">
+                        <i class="bi bi-plus"></i> Pridėti klipą
+                    </button>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>5. Nuolaidos</h5>
+                    <div class="mb-3">
+                        <label for="our_discount" class="form-label">Mūsų nuolaida (%)</label>
+                        <input type="number" class="form-control" id="our_discount"
+                               name="our_discount" min="0" max="100" step="0.1" value="0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="client_discount" class="form-label">Kliento nuolaida (%)</label>
+                        <input type="number" class="form-control" id="client_discount"
+                               name="client_discount" min="0" max="100" step="0.1" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-calendar-plus"></i> Generuoti planą
+                </button>
+                <a href="{{ url_for('main.planning') }}" class="btn btn-secondary btn-lg">
+                    Atšaukti
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    console.log('Document ready, jQuery loaded successfully');
+    // Load campaigns from API
+    loadCampaigns();
+
+    // Refresh campaigns when dropdown is clicked
+    $('#campaignDropdown').on('click', function() {
+        console.log('Campaign dropdown clicked, refreshing campaigns...');
+        loadCampaigns();
+    });
+
+    function loadCampaigns() {
+        console.log('Loading campaigns from API...');
+        $.ajax({
+            url: '/api/campaigns',
+            method: 'GET',
+            cache: false,
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            success: function(campaigns) {
+                console.log('Campaigns loaded successfully:', campaigns);
+                const dropdownMenu = $('#campaignDropdownMenu');
+                console.log('Found dropdown menu element:', dropdownMenu.length, dropdownMenu);
+                dropdownMenu.empty();
+
+                if (campaigns && campaigns.length > 0) {
+                    // Sort campaigns by creation date (newest first)
+                    campaigns.sort(function(a, b) {
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    });
+
+                    campaigns.forEach(function(campaign) {
+                        console.log('Adding campaign:', campaign.name);
+                        const listItem = $('<li></li>');
+                        const link = $('<a class="dropdown-item" href="#"></a>')
+                            .attr('data-campaign-id', campaign.id)
+                            .attr('data-project', campaign.project_name || '')
+                            .attr('data-client', campaign.client_brand_name || '')
+                            .attr('data-start', campaign.start_date)
+                            .attr('data-end', campaign.end_date)
+                            .text(campaign.name);
+                        listItem.append(link);
+                        dropdownMenu.append(listItem);
+                    });
+                    console.log('Campaign dropdown populated with', campaigns.length, 'campaigns');
+                    console.log('Dropdown has', dropdownMenu.find('li').length, 'total items');
+                } else {
+                    console.log('No campaigns received or empty array');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading campaigns:', error, xhr, status);
+                alert('Nepavyko užkrauti kampanijų iš Projects-CRM: ' + error);
+            }
+        });
+    }
+
+    // Handle campaign selection from dropdown
+    $(document).on('click', '.dropdown-item', function(e) {
+        e.preventDefault();
+        const selected = $(this);
+        const campaignId = selected.attr('data-campaign-id');
+        const campaignName = selected.text();
+
+        // Update button text and hidden input
+        $('#campaignDropdown').text(campaignName);
+        $('#campaign').val(campaignId);
+
+        // Fill in project and client info
+        $('#project_name').val(selected.attr('data-project') || '');
+        $('#client_name').val(selected.attr('data-client') || '');
+
+        // Set date constraints
+        const startDate = selected.attr('data-start');
+        const endDate = selected.attr('data-end');
+        $('#start_date').attr('min', startDate).attr('max', endDate).val(startDate);
+        $('#end_date').attr('min', startDate).attr('max', endDate).val(endDate);
+
+        console.log('Selected campaign:', campaignName, 'ID:', campaignId);
+    });
+
+    // Legacy change handler (keeping for compatibility)
+    $('#campaign').change(function() {
+        const selected = $(this).find(':selected');
+        if (selected.val()) {
+            $('#project_name').val(selected.data('project'));
+            $('#client_name').val(selected.data('client'));
+
+            // Set date constraints
+            const startDate = selected.data('start');
+            const endDate = selected.data('end');
+            $('#start_date').attr('min', startDate).attr('max', endDate).val(startDate);
+            $('#end_date').attr('min', startDate).attr('max', endDate).val(endDate);
+        }
+    });
+
+    // Add clip
+    $('#addClip').click(function() {
+        const newClip = $('.clip-row:first').clone();
+        newClip.find('input').val('');
+        newClip.find('.clip-duration').val('30');
+        $('#clipsContainer').append(newClip);
+    });
+
+    // Remove clip
+    $(document).on('click', '.remove-clip', function() {
+        if ($('.clip-row').length > 1) {
+            $(this).closest('.clip-row').remove();
+        }
+    });
+
+    // Submit form
+    $('#newPlanForm').submit(function(e) {
+        e.preventDefault();
+
+        const campaignId = $('#campaign').val();
+        const campaignName = $('#campaignDropdown').text();
+
+        // Gather clips
+        const clips = [];
+        $('.clip-row').each(function() {
+            const name = $(this).find('.clip-name').val();
+            const duration = $(this).find('.clip-duration').val();
+            if (name) {
+                clips.push({name: name, duration: parseInt(duration) || 30});
+            }
+        });
+
+        // Gather selected stations
+        const stations = [];
+        $('.station-checkbox:checked').each(function() {
+            stations.push({
+                id: $(this).val(),
+                name: $(this).data('station-name')
+            });
+        });
+
+        if (stations.length === 0) {
+            alert('Pasirinkite bent vieną radijo stotį');
+            return;
+        }
+
+        const planData = {
+            campaign_id: campaignId,
+            campaign_name: campaignName,
+            project_name: $('#project_name').val(),
+            client_brand_name: $('#client_name').val(),
+            start_date: $('#start_date').val(),
+            end_date: $('#end_date').val(),
+            our_discount: parseFloat($('#our_discount').val()) || 0,
+            client_discount: parseFloat($('#client_discount').val()) || 0,
+            clips: clips,
+            stations: stations
+        };
+
+        // Create plan
+        $.ajax({
+            url: '/api/plans',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(planData),
+            success: function(response) {
+                window.location.href = '/planning/' + response.id;
+            },
+            error: function() {
+                alert('Nepavyko sukurti plano');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
