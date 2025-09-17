@@ -309,3 +309,94 @@ def update_seasonal_index(index_id):
     db.session.commit()
 
     return jsonify({'message': 'Index updated successfully'}), 200
+
+@api_bp.route('/radio-stations/<int:station_id>/price', methods=['GET'])
+def get_station_price_for_duration(station_id):
+    """Get price for specific station, time slot, duration and weekend"""
+    station = RadioStation.query.get_or_404(station_id)
+
+    # Get query parameters
+    time_slot = request.args.get('time_slot')
+    duration = request.args.get('duration', '30')  # default 30s
+    is_weekend = request.args.get('is_weekend', 'false').lower() == 'true'
+
+    if not time_slot:
+        return jsonify({'error': 'time_slot parameter required'}), 400
+
+    # Map time slots to zones based on hour ranges
+    def get_zone_for_time_slot(time_slot, is_weekend):
+        # Extract start hour from time_slot like "07:00-07:30"
+        start_time = time_slot.split('-')[0]
+        hour = int(start_time.split(':')[0])
+
+        # Time zone mapping:
+        # A: 07:00 - 10:00
+        # B: 10:00 - 12:00
+        # C: 12:00 - 16:00
+        # B: 16:00 - 18:00
+        # D: 18:00 - 07:00 (and all other hours)
+        # D: 00:00 - 24:00 (Weekends - all day)
+
+        if is_weekend:
+            return 'D'  # All weekend hours are Zone D
+        elif 7 <= hour < 10:
+            return 'A'
+        elif 10 <= hour < 12:
+            return 'B'
+        elif 12 <= hour < 16:
+            return 'C'
+        elif 16 <= hour < 18:
+            return 'B'
+        else:
+            return 'D'  # 18:00-07:00 and other hours
+
+    # Get the zone for this time slot
+    zone = get_zone_for_time_slot(time_slot, is_weekend)
+
+    # Find StationZonePrice for this zone and duration
+    from app.models import StationZonePrice
+
+    # Get all zone prices for this station, zone, and weekend status
+    zone_prices = StationZonePrice.query.filter_by(
+        station_id=station_id,
+        zone=zone,
+        is_weekend=is_weekend
+    ).all()
+
+    # Convert duration strings to integers and find the best match (closest duration >= clip duration)
+    clip_duration_int = int(duration)
+    best_zone_price = None
+
+    for zp in zone_prices:
+        # Extract duration number from string like "60s"
+        zp_duration = int(zp.duration.replace('s', ''))
+
+        # Find the smallest duration that is >= clip duration
+        if zp_duration >= clip_duration_int:
+            if best_zone_price is None or zp_duration < int(best_zone_price.duration.replace('s', '')):
+                best_zone_price = zp
+
+    if best_zone_price:
+        return jsonify({
+            'price': best_zone_price.price,
+            'duration': duration,
+            'matched_duration': best_zone_price.duration,
+            'zone': zone,
+            'source': 'zone_price'
+        })
+
+    # Fallback to StationPrice if no zone price found
+    station_price = station.prices.filter_by(
+        time_slot=time_slot,
+        is_weekend=is_weekend,
+        is_active=True
+    ).first()
+
+    if station_price:
+        return jsonify({
+            'price': station_price.price,
+            'duration': duration,
+            'source': 'station_price_fallback'
+        })
+
+    return jsonify({'price': 0, 'duration': duration, 'source': 'not_found'})
