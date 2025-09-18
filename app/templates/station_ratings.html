@@ -3,33 +3,41 @@
 {% block title %}{{ station.name }} - Reitingai - Radio Planning{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1>{{ station.name }} - Reitingai</h1>
-                <p class="text-muted">Grupė: {{ station.group.name }}</p>
-            </div>
-            <div>
-                <a href="{{ url_for('main.stations') }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Grįžti į stotis
+<div class="container-fluid p-0">
+    <!-- Page Header -->
+    <div class="dashboard-header mb-4">
+        <div class="header-content">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                        <i class="bi bi-bar-chart text-blue-500"></i>
+                        {{ station.name }} - Reitingai
+                    </h1>
+                    <p class="text-gray-600">Grupė: <strong>{{ station.group.name }}</strong></p>
+                </div>
+                <a href="{{ url_for('main.stations') }}" class="btn-professional btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Grįžti į stotis</span>
                 </a>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-calendar-week"></i> Darbo dienos (Pr-Pn)
-                </h5>
+<div class="ratings-grid">
+    <div class="rating-section">
+        <div class="professional-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <h3>
+                        <i class="bi bi-calendar-week"></i>
+                        Darbo dienos (Pr-Pn)
+                    </h3>
+                    <span class="section-subtitle">Pirmadienio - penktadienio reitingai</span>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="table-container">
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="professional-table">
                         <thead>
                             <tr>
                                 <th>Laikas</th>
@@ -58,12 +66,8 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
-                                    <button class="btn btn-outline-primary btn-sm edit-data"
-                                            data-time-slot="{{ time_slot }}"
-                                            data-is-weekend="false"
-                                            data-current-grp="{{ weekday_rating.grp if weekday_rating else 0 }}"
-                                            data-current-trp="{{ weekday_rating.trp if weekday_rating else 0 }}"
-                                                            title="Redaguoti">
+                                    <button class="btn-professional btn-primary btn-sm" disabled
+>
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                 </td>
@@ -76,16 +80,20 @@
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-calendar2-week"></i> Savaitgalis (Št-Sk)
-                </h5>
+    <div class="rating-section">
+        <div class="professional-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <h3>
+                        <i class="bi bi-calendar2-week"></i>
+                        Savaitgalis (Št-Sk)
+                    </h3>
+                    <span class="section-subtitle">Šeštadienio - sekmadienio reitingai</span>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="table-container">
                 <div class="table-responsive">
-                    <table class="table table-sm">
+                    <table class="professional-table">
                         <thead>
                             <tr>
                                 <th>Laikas</th>
@@ -114,12 +122,8 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
-                                    <button class="btn btn-outline-success btn-sm edit-data"
-                                            data-time-slot="{{ time_slot }}"
-                                            data-is-weekend="true"
-                                            data-current-grp="{{ weekend_rating.grp if weekend_rating else 0 }}"
-                                            data-current-trp="{{ weekend_rating.trp if weekend_rating else 0 }}"
-                                                            title="Redaguoti">
+                                    <button class="btn-professional btn-success btn-sm" disabled
+>
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                 </td>
@@ -132,80 +136,208 @@
         </div>
     </div>
 </div>
-
-<!-- Edit Data Modal -->
-<div class="modal fade" id="editDataModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Redaguoti duomenis</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ url_for('main.update_station_ratings', station_id=station.id) }}" method="POST">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Laiko intervalas</label>
-                        <input type="text" class="form-control" id="modal_time_slot" name="time_slot" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Laikotarpis</label>
-                        <input type="text" class="form-control" id="modal_period_type" readonly>
-                        <input type="hidden" id="modal_is_weekend" name="is_weekend">
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="grp" class="form-label">GRP</label>
-                                <input type="number" step="0.01" min="0" class="form-control"
-                                       id="modal_grp" name="grp" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="trp" class="form-label">TRP</label>
-                                <input type="number" step="0.01" min="0" class="form-control"
-                                       id="modal_trp" name="trp" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-muted small">
-                        GRP (Gross Rating Point) - bendras auditorijos reitingas<br>
-                        TRP (Target Rating Point) - tikslinės auditorijos reitingas
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Išsaugoti
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
+
 
 {% endblock %}
 
+{% block extra_css %}
+<style>
+/* Professional Styling - Same as other pages */
+:root {
+    --primary-color: #2563eb;
+    --success-color: #059669;
+    --info-color: #0891b2;
+    --warning-color: #d97706;
+    --danger-color: #dc2626;
+    --secondary-color: #6b7280;
+    --background-light: #f8fafc;
+    --background-white: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Ratings Grid */
+.ratings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 768px) {
+    .ratings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Rating Sections */
+.rating-section {
+    min-height: 100%;
+}
+
+/* Professional Buttons */
+.btn-professional {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-professional.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.btn-professional.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-professional.btn-success {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.btn-professional.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+.btn-professional:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    opacity: 0.9;
+}
+
+.btn-professional:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Professional Sections */
+.professional-section {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    height: 100%;
+}
+
+.section-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--background-light);
+}
+
+.section-title h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+}
+
+.section-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Tables */
+.table-container {
+    overflow: hidden;
+}
+
+.professional-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    background: var(--background-white);
+}
+
+.professional-table th {
+    background: var(--background-light);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 2px solid var(--border-color);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.professional-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+    font-size: 0.875rem;
+    background: var(--background-white);
+}
+
+.professional-table tbody tr:hover {
+    background: var(--background-light);
+}
+
+/* Rating specific styling */
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Responsive table */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 576px) {
+    .professional-table th,
+    .professional-table td {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .btn-professional.btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+    }
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
-<script>
-$(document).ready(function() {
-    // Handle edit data clicks
-    $('.edit-data').click(function() {
-        const timeSlot = $(this).data('time-slot');
-        const isWeekend = $(this).data('is-weekend');
-        const currentGrp = $(this).data('current-grp');
-        const currentTrp = $(this).data('current-trp');
-
-        $('#modal_time_slot').val(timeSlot);
-        $('#modal_is_weekend').val(isWeekend);
-        $('#modal_grp').val(currentGrp);
-        $('#modal_trp').val(currentTrp);
-
-        const periodType = isWeekend ? 'Savaitgalis (Št-Sk)' : 'Darbo dienos (Pr-Pn)';
-        $('#modal_period_type').val(periodType);
-
-        $('#editDataModal').modal('show');
-    });
-});
-</script>
 {% endblock %}

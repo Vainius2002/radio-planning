@@ -3,138 +3,209 @@
 {% block title %}Naujas planas - Radio Planning{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">Naujas radijo planas</h1>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <form id="newPlanForm">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>1. Pasirinkite kampaniją</h5>
-                    <div class="mb-3">
-                        <label for="campaign" class="form-label">Kampanija iš Projects-CRM</label>
-                        <div class="dropdown w-100">
-                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" id="campaignDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                -- Pasirinkite kampaniją --
-                            </button>
-                            <ul class="dropdown-menu w-100" style="max-height: 300px; overflow-y: auto;" aria-labelledby="campaignDropdown" id="campaignDropdownMenu">
-                                <!-- Options will be loaded here -->
-                            </ul>
-                        </div>
-                        <input type="hidden" id="campaign" name="campaign" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Projektas</label>
-                        <input type="text" class="form-control" id="project_name" readonly>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Klientas</label>
-                        <input type="text" class="form-control" id="client_name" readonly>
-                    </div>
+<div class="container-fluid p-0">
+    <!-- Page Header -->
+    <div class="dashboard-header mb-4">
+        <div class="header-content">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                        <i class="bi bi-calendar-plus text-blue-500"></i>
+                        Naujas radijo planas
+                    </h1>
+                    <p class="text-gray-600">Sukurkite naują radijo kampanijos planą</p>
                 </div>
-
-                <div class="col-md-6">
-                    <h5>2. Nustatykite laikotarpį</h5>
-                    <div class="mb-3">
-                        <label for="start_date" class="form-label">Pradžios data</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="end_date" class="form-label">Pabaigos data</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" required>
-                    </div>
-
-                </div>
-            </div>
-
-            <hr>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>3. Pasirinkite radijo stotis</h5>
-                    <div class="mb-3">
-                        {% for group in groups %}
-                        <div class="mb-2">
-                            <strong>{{ group.name }}</strong>
-                            <div class="form-check ms-3">
-                                {% for station in group.stations %}
-                                <div class="form-check">
-                                    <input class="form-check-input station-checkbox" type="checkbox"
-                                           value="{{ station.id }}" id="station_{{ station.id }}"
-                                           data-station-name="{{ station.name }}">
-                                    <label class="form-check-label" for="station_{{ station.id }}">
-                                        {{ station.name }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <h5>4. Klipų informacija</h5>
-                    <div id="clipsContainer">
-                        <div class="mb-3 clip-row">
-                            <div class="row">
-                                <div class="col-md-7">
-                                    <input type="text" class="form-control clip-name"
-                                           placeholder="Klipo pavadinimas">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" class="form-control clip-duration"
-                                           placeholder="Trukmė (sek)" value="30">
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-sm btn-danger remove-clip">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-success" id="addClip">
-                        <i class="bi bi-plus"></i> Pridėti klipą
-                    </button>
-                </div>
-            </div>
-
-            <hr>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>5. Nuolaidos</h5>
-                    <div class="mb-3">
-                        <label for="our_discount" class="form-label">Mūsų nuolaida (%)</label>
-                        <input type="number" class="form-control" id="our_discount"
-                               name="our_discount" min="0" max="100" step="0.1" value="0">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="client_discount" class="form-label">Kliento nuolaida (%)</label>
-                        <input type="number" class="form-control" id="client_discount"
-                               name="client_discount" min="0" max="100" step="0.1" value="0">
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="bi bi-calendar-plus"></i> Generuoti planą
-                </button>
-                <a href="{{ url_for('main.planning') }}" class="btn btn-secondary btn-lg">
-                    Atšaukti
+                <a href="{{ url_for('main.planning') }}" class="btn-professional btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Atgal į planus</span>
                 </a>
             </div>
+        </div>
+    </div>
+
+    <div class="professional-section">
+        <div class="form-container">
+        <form id="newPlanForm">
+            <div class="form-grid">
+                <!-- Campaign Selection Section -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h3>
+                            <i class="bi bi-building"></i>
+                            Kampanijos informacija
+                        </h3>
+                        <span class="step-number">1</span>
+                    </div>
+                    <div class="form-fields">
+                        <div class="field-group">
+                            <label for="campaign" class="field-label">Kampanija iš Projects-CRM</label>
+                            <div class="dropdown-professional">
+                                <button class="dropdown-toggle-professional" type="button" id="campaignDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="dropdown-text">-- Pasirinkite kampaniją --</span>
+                                    <i class="bi bi-chevron-down dropdown-icon"></i>
+                                </button>
+                                <ul class="dropdown-menu-professional" aria-labelledby="campaignDropdown" id="campaignDropdownMenu">
+                                    <!-- Options will be loaded here -->
+                                </ul>
+                            </div>
+                            <input type="hidden" id="campaign" name="campaign" required>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label">Projektas</label>
+                            <input type="text" class="form-control-professional" id="project_name" readonly>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label">Klientas</label>
+                            <input type="text" class="form-control-professional" id="client_name" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date Range Section -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h3>
+                            <i class="bi bi-calendar-range"></i>
+                            Laikotarpis
+                        </h3>
+                        <span class="step-number">2</span>
+                    </div>
+                    <div class="form-fields">
+                        <div class="field-group">
+                            <label for="start_date" class="field-label">Pradžios data</label>
+                            <input type="date" class="form-control-professional" id="start_date" name="start_date" required>
+                        </div>
+
+                        <div class="field-group">
+                            <label for="end_date" class="field-label">Pabaigos data</label>
+                            <input type="date" class="form-control-professional" id="end_date" name="end_date" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <!-- Stations Selection Section -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h3>
+                            <i class="bi bi-broadcast"></i>
+                            Radijo stotys
+                        </h3>
+                        <span class="step-number">3</span>
+                    </div>
+                    <div class="form-fields">
+                        <div class="stations-grid">
+                            {% for group in groups %}
+                            <div class="station-group">
+                                <div class="group-header">
+                                    <i class="bi bi-collection"></i>
+                                    <strong>{{ group.name }}</strong>
+                                </div>
+                                <div class="stations-list">
+                                    {% for station in group.stations %}
+                                    <div class="station-item">
+                                        <input class="station-checkbox" type="checkbox"
+                                               value="{{ station.id }}" id="station_{{ station.id }}"
+                                               data-station-name="{{ station.name }}">
+                                        <label class="station-label" for="station_{{ station.id }}">
+                                            <i class="bi bi-radio"></i>
+                                            {{ station.name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clips Section -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h3>
+                            <i class="bi bi-film"></i>
+                            Klipų informacija
+                        </h3>
+                        <span class="step-number">4</span>
+                    </div>
+                    <div class="form-fields">
+                        <div id="clipsContainer" class="clips-container">
+                            <div class="clip-row">
+                                <div class="clip-fields">
+                                    <div class="clip-name-field">
+                                        <label class="field-label-small">Klipo pavadinimas</label>
+                                        <input type="text" class="form-control-professional clip-name"
+                                               placeholder="Įveskite klipo pavadinimą">
+                                    </div>
+                                    <div class="clip-duration-field">
+                                        <label class="field-label-small">Trukmė (sek)</label>
+                                        <input type="number" class="form-control-professional clip-duration"
+                                               placeholder="30" value="30">
+                                    </div>
+                                    <div class="clip-actions">
+                                        <button type="button" class="btn-professional btn-danger btn-sm remove-clip">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-professional btn-success btn-sm" id="addClip">
+                            <i class="bi bi-plus"></i>
+                            <span>Pridėti klipą</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discounts and Submit Section -->
+            <div class="form-section full-width">
+                <div class="section-header-form">
+                    <h3>
+                        <i class="bi bi-percent"></i>
+                        Nuolaidos ir patvirtinimas
+                    </h3>
+                    <span class="step-number">5</span>
+                </div>
+                <div class="form-fields">
+                    <div class="discounts-grid">
+                        <div class="field-group">
+                            <label for="our_discount" class="field-label">Mūsų nuolaida (%)</label>
+                            <div class="input-group-professional">
+                                <input type="number" class="form-control-professional" id="our_discount"
+                                       name="our_discount" min="0" max="100" step="0.1" value="0">
+                                <span class="input-suffix">%</span>
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label for="client_discount" class="field-label">Kliento nuolaida (%)</label>
+                            <div class="input-group-professional">
+                                <input type="number" class="form-control-professional" id="client_discount"
+                                       name="client_discount" min="0" max="100" step="0.1" value="0">
+                                <span class="input-suffix">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-professional btn-primary btn-lg">
+                            <i class="bi bi-calendar-plus"></i>
+                            <span>Generuoti planą</span>
+                        </button>
+                        <a href="{{ url_for('main.planning') }}" class="btn-professional btn-secondary btn-lg">
+                            <i class="bi bi-x-circle"></i>
+                            <span>Atšaukti</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </form>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -143,13 +214,31 @@
 <script>
 $(document).ready(function() {
     console.log('Document ready, jQuery loaded successfully');
-    // Load campaigns from API
-    loadCampaigns();
 
-    // Refresh campaigns when dropdown is clicked
-    $('#campaignDropdown').on('click', function() {
-        console.log('Campaign dropdown clicked, refreshing campaigns...');
-        loadCampaigns();
+    // Load campaigns only when dropdown is clicked for the first time
+    let campaignsLoaded = false;
+
+    $('#campaignDropdown').on('click', function(e) {
+        e.preventDefault();
+        const dropdown = $('#campaignDropdownMenu');
+
+        if (!campaignsLoaded) {
+            console.log('Campaign dropdown clicked, loading campaigns...');
+            loadCampaigns();
+            campaignsLoaded = true;
+        }
+
+        // Toggle dropdown visibility
+        dropdown.toggleClass('show');
+        $(this).attr('aria-expanded', dropdown.hasClass('show'));
+    });
+
+    // Close dropdown when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.dropdown-professional').length) {
+            $('#campaignDropdownMenu').removeClass('show');
+            $('#campaignDropdown').attr('aria-expanded', 'false');
+        }
     });
 
     function loadCampaigns() {
@@ -208,7 +297,7 @@ $(document).ready(function() {
         const campaignName = selected.text();
 
         // Update button text and hidden input
-        $('#campaignDropdown').text(campaignName);
+        $('#campaignDropdown').find('.dropdown-text').text(campaignName);
         $('#campaign').val(campaignId);
 
         // Fill in project and client info
@@ -220,6 +309,10 @@ $(document).ready(function() {
         const endDate = selected.attr('data-end');
         $('#start_date').attr('min', startDate).attr('max', endDate).val(startDate);
         $('#end_date').attr('min', startDate).attr('max', endDate).val(endDate);
+
+        // Close dropdown
+        $('#campaignDropdownMenu').removeClass('show');
+        $('#campaignDropdown').attr('aria-expanded', 'false');
 
         console.log('Selected campaign:', campaignName, 'ID:', campaignId);
     });
@@ -314,4 +407,431 @@ $(document).ready(function() {
     });
 });
 </script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Professional Styling - Same as other pages */
+:root {
+    --primary-color: #1d4ed8;
+    --success-color: #059669;
+    --info-color: #0284c7;
+    --warning-color: #d97706;
+    --danger-color: #dc2626;
+    --secondary-color: #6b7280;
+    --background-light: #f1f5f9;
+    --background-white: #fafbfc;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Professional Buttons */
+.btn-professional {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-professional.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.btn-professional.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.btn-professional.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-professional.btn-success {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.btn-professional.btn-danger {
+    background: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+.btn-professional.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+.btn-professional:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    opacity: 0.9;
+}
+
+/* Professional Sections */
+.professional-section {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.form-container {
+    padding: 2rem;
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.form-section {
+    background: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.form-section.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Section Headers */
+.section-header-form {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
+}
+
+.section-header-form h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+/* Form Fields */
+.form-fields {
+    padding: 1.5rem;
+}
+
+.field-group {
+    margin-bottom: 1.5rem;
+}
+
+.field-label {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.field-label-small {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.form-control-professional {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--background-white);
+    transition: all 0.2s ease;
+}
+
+.form-control-professional:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+}
+
+.form-control-professional:read-only {
+    background: var(--background-light);
+    color: var(--text-secondary);
+}
+
+/* Input Groups */
+.input-group-professional {
+    display: flex;
+}
+
+.input-suffix {
+    padding: 0.75rem;
+    background: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-left: none;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Professional Dropdown */
+.dropdown-professional {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-toggle-professional {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--background-white);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-toggle-professional:hover {
+    border-color: var(--primary-color);
+}
+
+.dropdown-text {
+    color: var(--text-muted);
+}
+
+.dropdown-icon {
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.dropdown-toggle-professional[aria-expanded="true"] .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu-professional {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: none; /* Hide by default */
+}
+
+.dropdown-menu-professional.show {
+    display: block;
+}
+
+.dropdown-menu-professional li {
+    margin: 0;
+}
+
+.dropdown-menu-professional a {
+    display: block;
+    padding: 0.75rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border-light);
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-menu-professional a:hover {
+    background: var(--background-light);
+}
+
+/* Stations Grid */
+.stations-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.station-group {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #1e3a8a, #3730a3);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.stations-list {
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+}
+
+.station-item {
+    display: flex;
+    align-items: center;
+}
+
+.station-checkbox {
+    margin-right: 0.5rem;
+    width: 1rem;
+    height: 1rem;
+}
+
+.station-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.station-label:hover {
+    color: var(--primary-color);
+}
+
+/* Clips Container */
+.clips-container {
+    margin-bottom: 1rem;
+}
+
+.clip-row {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.clip-fields {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.clip-name-field {
+    flex: 1;
+}
+
+.clip-duration-field {
+    min-width: 120px;
+}
+
+.clip-actions {
+    display: flex;
+    align-items: end;
+}
+
+/* Discounts Grid */
+.discounts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-light);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .clip-fields {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .discounts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .stations-list {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}

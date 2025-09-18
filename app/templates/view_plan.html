@@ -176,17 +176,21 @@
         </div>
     </div>
 
-    <!-- Excel-style Planning Table -->
-    <div class="professional-section">
+    <!-- Excel-style Planning Tables - Each Station Separate -->
+    {% for station in stations %}
+    <div class="professional-section station-section" data-station-id="{{ station.id }}">
         <div class="section-header">
             <div class="section-title">
-                <h3>Detalus planavimo planas</h3>
+                <h3>
+                    <i class="bi bi-broadcast"></i>
+                    {{ station.name }}
+                </h3>
                 <span class="section-subtitle">Kampanijos spotų paskirstymas ir finansinė analizė</span>
             </div>
         </div>
 
         <div class="planning-table-container">
-            <div class="table-responsive">
+            <div class="table-responsive station-table-wrapper" data-station-id="{{ station.id }}">
                 <table class="planning-table">
                     <thead>
                         <tr class="main-header">
@@ -232,23 +236,7 @@
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody id="planningTableBody">
-                    <!-- Radio station time slots will be populated here -->
-                    {% for station in stations %}
-                        {% if not loop.first %}
-                            <!-- Station separator row -->
-                            <tr class="station-separator">
-                                <td colspan="{{ 20 + calendar_data.dates|length }}" style="height: 20px; background-color: #f8f9fa; border: none;"></td>
-                            </tr>
-                        {% endif %}
-
-                        <!-- Station header row -->
-                        <tr class="station-header">
-                            <td colspan="{{ 20 + calendar_data.dates|length }}" style="background-color: #e9ecef; font-weight: bold; text-align: center; padding: 8px;">
-                                {{ station.name }}
-                            </td>
-                        </tr>
-
+                    <tbody class="station-tbody">
                         <!-- All weekday rows first -->
                         {% for time_slot in time_slots %}
                             <tr class="planning-row station-{{ station.id }}-row" data-station-id="{{ station.id }}" data-time-slot="{{ time_slot }}" data-is-weekend="false">
@@ -348,11 +336,12 @@
                                 <td></td>
                             {% endfor %}
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+    {% endfor %}
 </div>
 
 {% endblock %}
@@ -427,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStationRatings();
     loadStationPrices();
     loadExistingSpots();
+    initializeDragToScroll();
 });
 
 function generateCalendarGrid() {
@@ -897,6 +887,89 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// Initialize drag-to-scroll functionality for each station table
+function initializeDragToScroll() {
+    const stationWrappers = document.querySelectorAll('.station-table-wrapper');
+
+    stationWrappers.forEach(wrapper => {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        wrapper.addEventListener('mousedown', (e) => {
+            // Only allow dragging in calendar date area (after the first 20 columns)
+            const calendarDateHeaders = wrapper.querySelectorAll('.calendar-date-header');
+            const isInCalendarArea = e.target.closest('.calendar-date-header') ||
+                                   e.target.classList.contains('calendar-cell') ||
+                                   e.target.closest('.calendar-cell');
+
+            if (!isInCalendarArea) {
+                return; // Don't allow dragging outside calendar area
+            }
+
+            // Allow normal click behavior for calendar cells with spot functionality
+            if (e.target.tagName === 'TD' && e.target.classList.contains('calendar-cell')) {
+                return;
+            }
+
+            isDown = true;
+            wrapper.classList.add('active');
+            startX = e.pageX - wrapper.offsetLeft;
+            scrollLeft = wrapper.scrollLeft;
+            e.preventDefault(); // Prevent text selection
+        });
+
+        wrapper.addEventListener('mouseleave', () => {
+            isDown = false;
+            wrapper.classList.remove('active');
+        });
+
+        wrapper.addEventListener('mouseup', () => {
+            isDown = false;
+            wrapper.classList.remove('active');
+        });
+
+        wrapper.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - wrapper.offsetLeft;
+            const walk = (x - startX) * 2; // Adjust scroll speed multiplier
+            wrapper.scrollLeft = scrollLeft - walk;
+        });
+
+        // Touch support for mobile devices
+        wrapper.addEventListener('touchstart', (e) => {
+            const isInCalendarArea = e.target.closest('.calendar-date-header') ||
+                                   e.target.classList.contains('calendar-cell') ||
+                                   e.target.closest('.calendar-cell');
+
+            if (!isInCalendarArea) {
+                return;
+            }
+
+            if (e.target.tagName === 'TD' && e.target.classList.contains('calendar-cell')) {
+                return;
+            }
+
+            isDown = true;
+            startX = e.touches[0].pageX - wrapper.offsetLeft;
+            scrollLeft = wrapper.scrollLeft;
+        });
+
+        wrapper.addEventListener('touchend', () => {
+            isDown = false;
+        });
+
+        wrapper.addEventListener('touchmove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.touches[0].pageX - wrapper.offsetLeft;
+            const walk = (x - startX) * 2;
+            wrapper.scrollLeft = scrollLeft - walk;
+        });
+    });
+}
+
 </script>
 
 <style>
@@ -1070,8 +1143,13 @@ function showNotification(message, type = 'info') {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
     overflow: hidden;
+}
+
+/* Station Sections - Individual spacing */
+.station-section {
+    margin-bottom: 3rem;
 }
 
 .section-header {
@@ -1429,6 +1507,60 @@ function showNotification(message, type = 'info') {
     overflow-x: auto;
     max-width: 100%;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    user-select: none;
+}
+
+/* Station Table Wrapper - Individual scrolling */
+.station-table-wrapper {
+    overflow-x: auto;
+    max-width: 100%;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    user-select: none;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Grab cursor only for calendar area where dragging is actually possible */
+.calendar-date-header {
+    cursor: grab;
+}
+
+.calendar-cell:not(.has-spot) {
+    cursor: grab;
+}
+
+.calendar-cell.has-spot {
+    cursor: pointer;
+}
+
+/* Grabbing cursor when actively dragging */
+.station-table-wrapper:active .calendar-date-header,
+.station-table-wrapper:active .calendar-cell:not(.has-spot) {
+    cursor: grabbing;
+}
+
+/* Ensure other table cells have default cursor */
+.planning-table td:not(.calendar-cell),
+.planning-table th:not(.calendar-date-header) {
+    cursor: default;
+}
+
+.station-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.station-table-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.station-table-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.station-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* Calendar table styling */
