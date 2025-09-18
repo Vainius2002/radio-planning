@@ -3,232 +3,376 @@
 {% block title %}Radijo stotys - Radio Planning{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Radijo stotys</h1>
-            <div>
-                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addGroupModal">
-                    <i class="bi bi-plus-circle"></i> Nauja grupė
+<div class="container-fluid p-0">
+    <!-- Page Header -->
+    <div class="dashboard-header mb-4">
+        <div class="header-content">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Radijo stotys</h1>
+                    <p class="text-gray-600">Valdykite radijo grupes ir stotis</p>
+                </div>
+                <button class="btn-professional btn-success" disabled>
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Nauja grupė</span>
                 </button>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    {% for group in groups %}
-    <div class="col-md-4 mb-3">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">{{ group.name }} ({{ group.stations.count() }})</h5>
-                    <div class="btn-group">
-                        <button class="btn btn-light btn-sm add-station-to-group"
-                                data-group-id="{{ group.id }}"
-                                data-group-name="{{ group.name }}">
-                            <i class="bi bi-plus-circle"></i> Pridėti stotį
-                        </button>
-                        <a href="{{ url_for('main.group_seasonal_adjustments', group_id=group.id) }}"
-                           class="btn btn-warning btn-sm"
-                           title="Sez. antkainiai">
-                            <i class="bi bi-calendar3-week"></i> Sez. antkainiai
-                        </a>
-                    </div>
+    <!-- Groups Grid -->
+    {% if groups %}
+    <div class="groups-grid">
+        {% for group in groups %}
+        <div class="group-card">
+            <div class="group-header">
+                <div class="group-title">
+                    <h3>{{ group.name }}</h3>
+                    <span class="group-count">{{ group.stations.count() }} stotys</span>
+                </div>
+                <div class="group-actions">
+                    <button class="btn-professional btn-primary btn-sm " disabled>
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Pridėti stotį</span>
+                    </button>
+                    <a href="{{ url_for('main.group_seasonal_adjustments', group_id=group.id) }}"
+                       class="btn-professional btn-warning btn-sm"
+                       title="Sez. antkainiai">
+                        <i class="bi bi-calendar3-week"></i>
+                        <span>Sez. antkainiai</span>
+                    </a>
                 </div>
             </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
+
+            <div class="stations-container">
+                {% if group.stations %}
                     {% for station in group.stations %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ station.name }}
-                        <div class="btn-group btn-group-sm">
+                    <div class="station-item">
+                        <div class="station-info">
+                            <h4 class="station-name">{{ station.name }}</h4>
+                        </div>
+                        <div class="station-actions">
                             <a href="{{ url_for('main.station_prices', station_id=station.id) }}"
-                               class="btn btn-outline-info btn-sm" title="Peržiūrėti reitingus">
-                                Reitingai
+                               class="btn-professional btn-info btn-sm" title="Peržiūrėti reitingus">
+                                <i class="bi bi-bar-chart"></i>
+                                <span>Reitingai</span>
                             </a>
                             <a href="{{ url_for('main.station_pricing', station_id=station.id) }}"
-                               class="btn btn-outline-success btn-sm" title="Peržiūrėti įkainius">
-                                Įkainiai
+                               class="btn-professional btn-success btn-sm" title="Peržiūrėti įkainius">
+                                <i class="bi bi-currency-euro"></i>
+                                <span>Įkainiai</span>
                             </a>
-                            <button class="btn btn-outline-danger btn-sm delete-station"
-                                    data-station-id="{{ station.id }}"
-                                    data-station-name="{{ station.name }}"
-                                    title="Ištrinti stotį">
+                            <button class="btn-professional btn-danger btn-sm " disabled>
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
-                    </li>
-                    {% else %}
-                    <li class="list-group-item text-muted">
-                        <em>Nėra stočių šioje grupėje</em>
-                    </li>
+                    </div>
                     {% endfor %}
-                </ul>
+                {% else %}
+                    <div class="empty-stations">
+                        <div class="empty-icon">
+                            <i class="bi bi-broadcast"></i>
+                        </div>
+                        <p>Nėra stočių šioje grupėje</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
+        {% endfor %}
     </div>
     {% else %}
-    <div class="col-12">
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i>
-            Nėra sukurtų radijo grupių. Sukurkite pirmą grupę ir pradėkite pridėti radijo stotis.
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-people"></i>
+        </div>
+        <div class="empty-content">
+            <h4>Nėra sukurtų radijo grupių</h4>
+            <p>Sukurkite pirmą grupę ir pradėkite pridėti radijo stotis</p>
+            <div class="mt-4">
+                <button class="btn-professional btn-success" disabled>
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Sukurti pirmą grupę</span>
+                </button>
+            </div>
         </div>
     </div>
-    {% endfor %}
+    {% endif %}
 </div>
 
-<!-- Add Group Modal -->
-<div class="modal fade" id="addGroupModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nauja radijo grupė</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ url_for('main.add_group') }}" method="POST">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="group_name" class="form-label">Grupės pavadinimas</label>
-                        <input type="text" class="form-control" id="group_name" name="group_name"
-                               placeholder="Pvz.: Nauja grupė" required>
-                    </div>
-                    <div class="text-muted small">
-                        Grupės padeda organizuoti radijo stotis pagal savininką ar tipą.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-plus-circle"></i> Sukurti grupę
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+{% endblock %}
 
-<!-- Add Station Modal -->
-<div class="modal fade" id="addStationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nauja radijo stotis</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ url_for('main.add_station') }}" method="POST">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="station_name" class="form-label">Stoties pavadinimas</label>
-                        <input type="text" class="form-control" id="station_name" name="station_name"
-                               placeholder="Pvz.: Nauja FM" required>
-                    </div>
-                    <div class="mb-3" id="group_selection_div">
-                        <label for="group_id" class="form-label">Grupė</label>
-                        <select class="form-select" id="group_id" name="group_id" required>
-                            <option value="">-- Pasirinkite grupę --</option>
-                            {% for group in groups %}
-                            <option value="{{ group.id }}">{{ group.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <input type="hidden" id="selected_group_id" name="selected_group_id" value="">
-                    {% if not groups %}
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        Pirmiausia sukurkite bent vieną radijo grupę.
-                    </div>
-                    {% endif %}
-                    <div class="text-muted small">
-                        Naujai stočiai bus automatiškai sukurti pagrindinio įkainiai visiems laiko intervalams.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
-                    <button type="submit" class="btn btn-primary" {{ 'disabled' if not groups }}>
-                        <i class="bi bi-plus-circle"></i> Sukurti stotį
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+{% block extra_css %}
+<style>
+/* Professional Styling - Same as dashboard */
+:root {
+    --primary-color: #2563eb;
+    --success-color: #059669;
+    --info-color: #0891b2;
+    --warning-color: #d97706;
+    --danger-color: #dc2626;
+    --background-light: #f8fafc;
+    --background-white: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteStationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Ištrinti radijo stotį</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Ar tikrai norite ištrinti radijo stotį <strong id="deleteStationName"></strong>?</p>
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Dėmesio!</strong> Bus ištrinti visi stoties įkainiai ir reitingai.
-                    Šis veiksmas negrįžtamas.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
-                <form id="deleteStationForm" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash"></i> Ištrinti
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+/* Dashboard Header */
+.dashboard-header {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Professional Buttons */
+.btn-professional {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-professional.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.btn-professional.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-professional.btn-success {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.btn-professional.btn-info {
+    background: var(--info-color);
+    color: white;
+    border-color: var(--info-color);
+}
+
+.btn-professional.btn-warning {
+    background: var(--warning-color);
+    color: white;
+    border-color: var(--warning-color);
+}
+
+.btn-professional.btn-danger {
+    background: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+.btn-professional:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    opacity: 0.9;
+}
+
+/* Groups Grid */
+.groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.group-card {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.group-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.group-header {
+    background: var(--background-light);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.group-title h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+}
+
+.group-count {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.group-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.stations-container {
+    padding: 1.5rem;
+}
+
+.station-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-light);
+    transition: all 0.2s ease;
+}
+
+.station-item:last-child {
+    border-bottom: none;
+}
+
+.station-item:hover {
+    background: var(--background-light);
+    margin: 0 -1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.station-name {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.station-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.empty-stations {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.empty-stations .empty-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: var(--background-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.empty-stations .empty-icon i {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+}
+
+.empty-stations p {
+    color: var(--text-muted);
+    margin: 0;
+    font-style: italic;
+}
+
+/* Empty States */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.empty-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: var(--background-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.empty-icon i {
+    font-size: 2rem;
+    color: var(--text-muted);
+}
+
+.empty-content h4 {
+    color: var(--text-primary);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-content p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .groups-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .group-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .station-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .station-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-$(document).ready(function() {
-    console.log('JavaScript loaded');
-
-    // Handle delete station clicks
-    $('.delete-station').click(function() {
-        const stationId = $(this).data('station-id');
-        const stationName = $(this).data('station-name');
-
-        $('#deleteStationName').text(stationName);
-        $('#deleteStationForm').attr('action', '/stations/' + stationId + '/delete');
-
-        $('#deleteStationModal').modal('show');
-    });
-
-    // Handle add station to group clicks
-    $('.add-station-to-group').click(function() {
-        console.log('Add station button clicked');
-        const groupId = $(this).data('group-id');
-        const groupName = $(this).data('group-name');
-        console.log('Group ID:', groupId, 'Group Name:', groupName);
-
-        // Hide group selection dropdown and use hidden field
-        $('#group_selection_div').hide();
-        $('#group_id').removeAttr('name').removeAttr('required'); // Remove name and required from select
-        $('#selected_group_id').attr('name', 'group_id').val(groupId); // Add name to hidden field
-
-        // Update modal title to show which group
-        $('#addStationModal .modal-title').text('Nauja stotis - ' + groupName);
-
-        $('#addStationModal').modal('show');
-    });
-
-    // Reset modal when it's closed
-    $('#addStationModal').on('hidden.bs.modal', function() {
-        console.log('Modal closed, resetting');
-        // Show group selection dropdown again
-        $('#group_selection_div').show();
-        $('#selected_group_id').removeAttr('name').val(''); // Remove name from hidden field
-        $('#group_id').attr('name', 'group_id').attr('required', 'required').val(''); // Add name and required back to select
-        // Reset modal title
-        $('#addStationModal .modal-title').text('Nauja radijo stotis');
-        // Clear station name
-        $('#station_name').val('');
-    });
-});
-</script>
 {% endblock %}
