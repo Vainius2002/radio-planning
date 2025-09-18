@@ -623,10 +623,10 @@ function calculateRowPrices(row) {
     row.querySelector('.final-price').textContent = priceWithIndex.toFixed(2); // Single spot final price
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
-    // Calculate TRP price if TRP is available
+    // Calculate TRP price if TRP is available using formula: basePrice / TRP / 100
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
     if (trp > 0) {
-        const trpPrice = priceWithIndex / trp;
+        const trpPrice = basePrice / trp / 100;
         row.querySelector('.trp-price').textContent = trpPrice.toFixed(2);
     }
 }
@@ -862,10 +862,10 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     row.querySelector('.final-price').textContent = priceWithIndex.toFixed(2); // Single spot final price
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
-    // Calculate TRP price if TRP is available
+    // Calculate TRP price if TRP is available using formula: basePrice / TRP / 100
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
     if (trp > 0) {
-        const trpPrice = priceWithIndex / trp;
+        const trpPrice = basePrice / trp / 100;
         row.querySelector('.trp-price').textContent = trpPrice.toFixed(2);
     }
 }
