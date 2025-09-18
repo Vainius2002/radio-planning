@@ -3,124 +3,541 @@
 {% block title %}Dashboard - Radio Planning{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">Radio Planning Dashboard</h1>
+<div class="container-fluid p-0">
+    <!-- Header Section -->
+    <div class="dashboard-header mb-4">
+        <div class="header-content">
+            <h1>Radio Planning Dashboard</h1>
+            <p class="header-subtitle">Valdykite radijo planus ir stotis</p>
+        </div>
     </div>
-</div>
 
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">Planai</h5>
-                <h2 class="card-text">{{ plans | length }}</h2>
-                <a href="{{ url_for('main.planning') }}" class="btn btn-light btn-sm">Peržiūrėti</a>
+    <!-- Stats Grid -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card stat-card-primary">
+            <div class="stat-content">
+                <div class="stat-info">
+                    <div class="stat-label">PLANAI</div>
+                    <div class="stat-value">{{ plans | length }}</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="bi bi-file-text"></i>
+                </div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('main.planning') }}" class="btn-professional btn-primary">
+                    <span>Peržiūrėti</span>
+                </a>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title">Radijo stotys</h5>
-                <h2 class="card-text">{{ stations | length }}</h2>
-                <a href="{{ url_for('main.stations') }}" class="btn btn-light btn-sm">Valdyti</a>
+
+        <div class="stat-card stat-card-success">
+            <div class="stat-content">
+                <div class="stat-info">
+                    <div class="stat-label">RADIJO STOTYS</div>
+                    <div class="stat-value">{{ stations | length }}</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="bi bi-broadcast"></i>
+                </div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('main.stations') }}" class="btn-professional btn-success">
+                    <span>Valdyti</span>
+                </a>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title">Grupės</h5>
-                <h2 class="card-text">{{ groups | length }}</h2>
-                <a href="{{ url_for('main.stations') }}" class="btn btn-light btn-sm">Peržiūrėti</a>
+
+        <div class="stat-card stat-card-info">
+            <div class="stat-content">
+                <div class="stat-info">
+                    <div class="stat-label">GRUPĖS</div>
+                    <div class="stat-value">{{ groups | length }}</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('main.stations') }}" class="btn-professional btn-info">
+                    <span>Peržiūrėti</span>
+                </a>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <h5 class="card-title">Naujas planas</h5>
-                <p class="card-text">Sukurti naują</p>
-                <a href="{{ url_for('main.new_plan') }}" class="btn btn-light btn-sm">
-                    <i class="bi bi-plus-circle"></i> Kurti
+
+        <div class="stat-card stat-card-warning">
+            <div class="stat-content">
+                <div class="stat-info">
+                    <div class="stat-label">NAUJAS PLANAS</div>
+                    <div class="stat-description">Sukurti naują</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="bi bi-plus-circle"></i>
+                </div>
+            </div>
+            <div class="stat-action">
+                <a href="{{ url_for('main.new_plan') }}" class="btn-professional btn-warning">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Kurti</span>
                 </a>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5>Naujausi planai</h5>
+    <!-- Content Grid -->
+    <div class="content-grid">
+        <!-- Recent Plans -->
+        <div class="content-section plans-section">
+            <div class="professional-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <h3>Naujausi planai</h3>
+                        <span class="section-subtitle">Paskutiniai sukurti radijo planai</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    {% if plans %}
+                    <div class="table-responsive">
+                        <table class="professional-table">
+                            <thead>
+                                <tr>
+                                    <th>Kampanija</th>
+                                    <th>Klientas</th>
+                                    <th>Laikotarpis</th>
+                                    <th>Sukurta</th>
+                                    <th>Veiksmai</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for plan in plans %}
+                                <tr>
+                                    <td>{{ plan.campaign_name or 'N/A' }}</td>
+                                    <td>{{ plan.client_brand_name or 'N/A' }}</td>
+                                    <td>{{ plan.start_date.strftime('%Y-%m-%d') }} - {{ plan.end_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}" class="btn-professional btn-primary btn-sm">
+                                            <i class="bi bi-eye"></i>
+                                            <span>Peržiūrėti</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="bi bi-file-text"></i>
+                        </div>
+                        <div class="empty-content">
+                            <h4>Nėra sukurtų planų</h4>
+                            <p>Sukurkite pirmą planą paspausdami "Kurti" mygtuką</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="card-body">
-                {% if plans %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Kampanija</th>
-                                <th>Klientas</th>
-                                <th>Laikotarpis</th>
-                                <th>Sukurta</th>
-                                <th>Veiksmai</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for plan in plans %}
-                            <tr>
-                                <td>{{ plan.campaign_name or 'N/A' }}</td>
-                                <td>{{ plan.client_brand_name or 'N/A' }}</td>
-                                <td>
-                                    {{ plan.start_date.strftime('%Y-%m-%d') }} -
-                                    {{ plan.end_date.strftime('%Y-%m-%d') }}
-                                </td>
-                                <td>{{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>
-                                    <a href="{{ url_for('main.view_plan', plan_id=plan.id) }}"
-                                       class="btn btn-sm btn-primary">
-                                        <i class="bi bi-eye"></i> Peržiūrėti
-                                    </a>
-                                </td>
-                            </tr>
+        </div>
+
+        <!-- Radio Groups -->
+        <div class="content-section groups-section">
+            <div class="professional-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <h3>Radijo grupės</h3>
+                        <span class="section-subtitle">Stočių organizavimas grupėmis</span>
+                    </div>
+                </div>
+
+                <div class="groups-container">
+                    {% for group in groups %}
+                    <div class="group-item">
+                        <div class="group-header">
+                            <h4>{{ group.name }}</h4>
+                            <span class="group-badge">{{ group.stations.count() }} stotys</span>
+                        </div>
+                        <div class="stations-list">
+                            {% for station in group.stations %}
+                            <div class="station-item">
+                                <span class="station-name">{{ station.name }}</span>
+                                <span class="station-info">{{ station.ratings.count() }} reitingai</span>
+                            </div>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted">Nėra sukurtų planų</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+                            {% if group.stations.count() == 0 %}
+                            <div class="station-item empty">
+                                <span class="empty-text">Nėra stočių</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5>Radijo grupės</h5>
-            </div>
-            <div class="card-body">
-                {% for group in groups %}
-                <div class="mb-3">
-                    <h6>{{ group.name }} ({{ group.stations.count() }} stotys)</h6>
-                    <ul class="list-unstyled ms-3">
-                        {% for station in group.stations %}
-                        <li>
-                            <i class="bi bi-broadcast"></i> {{ station.name }}
-                            <small class="text-muted">({{ station.ratings.count() }} reitingai)</small>
-                        </li>
-                        {% endfor %}
-                        {% if group.stations.count() == 0 %}
-                        <li class="text-muted">Nėra stočių</li>
-                        {% endif %}
-                    </ul>
+                    {% if groups|length == 0 %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div class="empty-content">
+                            <h4>Nėra sukurtų grupių</h4>
+                            <p>Sukurkite pirmą grupę stočių organizavimui</p>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Dashboard Professional Styling */
+:root {
+    --primary-color: #2563eb;
+    --success-color: #059669;
+    --info-color: #0891b2;
+    --warning-color: #d97706;
+    --background-light: #f8fafc;
+    --background-white: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.header-content h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+}
+
+.header-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.stat-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-description {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-card-primary .stat-icon { background: var(--primary-color); }
+.stat-card-success .stat-icon { background: var(--success-color); }
+.stat-card-info .stat-icon { background: var(--info-color); }
+.stat-card-warning .stat-icon { background: var(--warning-color); }
+
+/* Professional Buttons */
+.btn-professional {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-professional.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.btn-professional.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-professional.btn-success {
+    background: var(--success-color);
+    color: white;
+    border-color: var(--success-color);
+}
+
+.btn-professional.btn-info {
+    background: var(--info-color);
+    color: white;
+    border-color: var(--info-color);
+}
+
+.btn-professional.btn-warning {
+    background: var(--warning-color);
+    color: white;
+    border-color: var(--warning-color);
+}
+
+.btn-professional:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    opacity: 0.9;
+}
+
+/* Content Grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Professional Sections */
+.professional-section {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.section-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--background-light);
+}
+
+.section-title h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+}
+
+.section-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Tables */
+.table-container {
+    overflow: hidden;
+}
+
+.professional-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    background: var(--background-white);
+}
+
+.professional-table th {
+    background: var(--background-light);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 2px solid var(--border-color);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.professional-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+    font-size: 0.875rem;
+    background: var(--background-white);
+}
+
+.professional-table tbody tr:hover {
+    background: var(--background-light);
+}
+
+/* Groups */
+.groups-container {
+    padding: 1.5rem 2rem;
+}
+
+.group-item {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.group-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.group-header h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.group-badge {
+    background: var(--text-secondary);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.stations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.station-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.station-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.station-info {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.station-item.empty .empty-text {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Empty States */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.empty-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: var(--background-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.empty-icon i {
+    font-size: 2rem;
+    color: var(--text-muted);
+}
+
+.empty-content h4 {
+    color: var(--text-primary);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-content p {
+    color: var(--text-muted);
+    margin: 0;
+}
+</style>
 {% endblock %}

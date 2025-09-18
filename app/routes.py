@@ -22,7 +22,8 @@ def index():
 @main_bp.route('/planning')
 def planning():
     """Radio planning page"""
-    return render_template('planning.html')
+    plans = RadioPlan.query.order_by(RadioPlan.created_at.desc()).all()
+    return render_template('planning.html', plans=plans)
 
 @main_bp.route('/planning/new')
 def new_plan():

@@ -5,161 +5,234 @@
 {% block content %}
 <div class="container-fluid p-0">
     <!-- Header Section -->
-    <div class="bg-white border-bottom p-3 mb-3">
-        <div class="row">
-            <div class="col-md-3">
-                <small class="text-muted">Agentūra:</small><br>
-                <strong>BPN LT</strong>
+    <div class="header-section mb-4">
+        <div class="header-card">
+            <div class="header-top">
+                <div class="campaign-title">
+                    <h1>{{ plan.campaign_name }}</h1>
+                    <span class="campaign-subtitle">Radijo kampanijos planavimas</span>
+                </div>
+                <div class="header-actions">
+                    <button href="/api/plans/{{ plan.id }}/export" class="btn-professional btn-primary">
+                        <i class="bi bi-download"></i>
+                        <span>Eksportuoti</span>
+                    </button>
+                    <a href="/planning/new" class="btn-professional btn-secondary">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Atgal</span>
+                    </a>
+                </div>
             </div>
-            <div class="col-md-3">
-                <small class="text-muted">Klientas:</small><br>
-                <strong>{{ plan.client_brand_name }}</strong>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-header">
+                        <i class="bi bi-building info-icon"></i>
+                        <span class="info-label">Agentūra</span>
+                    </div>
+                    <div class="info-value">BPN LT</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-header">
+                        <i class="bi bi-person-badge info-icon"></i>
+                        <span class="info-label">Klientas</span>
+                    </div>
+                    <div class="info-value">{{ plan.client_brand_name }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-header">
+                        <i class="bi bi-megaphone info-icon"></i>
+                        <span class="info-label">Kampanija</span>
+                    </div>
+                    <div class="info-value">{{ plan.campaign_name }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-header">
+                        <i class="bi bi-people info-icon"></i>
+                        <span class="info-label">Tikslinė grupė</span>
+                    </div>
+                    <div class="info-value">{{ plan.target_audience }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-header">
+                        <i class="bi bi-calendar-range info-icon"></i>
+                        <span class="info-label">Laikotarpis</span>
+                    </div>
+                    <div class="info-value">{{ plan.start_date }} - {{ plan.end_date }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-header">
+                        <i class="bi bi-geo-alt info-icon"></i>
+                        <span class="info-label">Šalis</span>
+                    </div>
+                    <div class="info-value">Lietuva</div>
+                </div>
             </div>
-            <div class="col-md-3">
-                <small class="text-muted">Produktas:</small><br>
-                <strong>{{ plan.campaign_name }}</strong>
-            </div>
-            <div class="col-md-3">
-                <small class="text-muted">Tikslinė grupė:</small><br>
-                <strong>{{ plan.target_audience }}</strong>
-            </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-md-2">
-                <small class="text-muted">Kampanija:</small><br>
-                <strong>{{ plan.campaign_name }}</strong>
-            </div>
-            <div class="col-md-2">
-                <small class="text-muted">Laikotarpis:</small><br>
-                <strong>{{ plan.start_date }} - {{ plan.end_date }}</strong>
-            </div>
-            <div class="col-md-2">
-                <small class="text-muted">Šalis:</small><br>
-                <strong>Lietuva</strong>
-            </div>
-            {% if plan.clips %}
-            <div class="col-md-3">
-                <small class="text-muted">Klipų informacija:</small><br>
-                {% for clip in plan.clips %}
-                    <strong>{{ clip.name }}</strong> ({{ clip.duration }}s){% if not loop.last %}, {% endif %}
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="col-md-3">
-                <small class="text-muted">Klipų informacija:</small><br>
-                <strong>Nėra pridėtų klipų</strong>
-            </div>
-            {% endif %}
-            <div class="col-md-3 text-end">
-                <a href="/api/plans/{{ plan.id }}/export" class="btn btn-primary btn-sm">
-                    <i class="bi bi-download"></i> Eksportuoti
-                </a>
-                <a href="/planning/new" class="btn btn-secondary btn-sm">
-                    <i class="bi bi-arrow-left"></i> Atgal
-                </a>
+
+            <div class="clips-section">
+                <div class="info-item full-width">
+                    <div class="info-header">
+                        <i class="bi bi-film info-icon"></i>
+                        <span class="info-label">Klipų informacija</span>
+                    </div>
+                    <div class="info-value">
+                        {% if plan.clips %}
+                            {% for clip in plan.clips %}
+                                {{ clip.name }} ({{ clip.duration }}s){% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            Nėra pridėtų klipų
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Scrollable Calendar Header -->
-    <div class="calendar-container mb-3">
-        <div class="calendar-header bg-light border p-2">
-            <div class="d-flex align-items-center mb-2">
-                <button type="button" class="btn btn-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#addSpotModal">
-                    <i class="bi bi-plus"></i> Pridėti spotą
-                </button>
-                <span class="text-muted">Kalendorius: {{ plan.start_date }} - {{ plan.end_date }}</span>
+    <!-- Calendar Section -->
+    <div class="mb-4">
+        <!-- Calendar Section -->
+        <div class="professional-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <h3>Planavimo kalendorius</h3>
+                    <span class="section-subtitle">{{ plan.start_date }} - {{ plan.end_date }}</span>
+                </div>
             </div>
-        </div>
 
-        <div class="calendar-scroll-container">
-            <div class="calendar-dates" id="calendarDates">
-                <!-- Calendar dates will be generated here -->
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="professional-table" id="calendar-table">
+                        <thead>
+                            <tr id="calendar-header">
+                                <th class="station-column">Radijo stotis</th>
+                                <!-- Date headers will be generated here -->
+                            </tr>
+                        </thead>
+                        <tbody id="calendar-body">
+                            <!-- Station rows with input cells will be generated here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Discount Controls -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="row align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label">Mūsų nuolaida (%)</label>
-                    <div class="input-group">
-                        <input type="number"
-                               class="form-control"
-                               id="globalOurDiscount"
-                               value="{{ plan.our_discount }}"
-                               min="0"
-                               max="100"
-                               step="1">
-                        <span class="input-group-text">%</span>
-                    </div>
+    <div class="professional-section mb-4">
+        <div class="section-header">
+            <div class="section-title">
+                <h3>Nuolaidų valdymas</h3>
+                <span class="section-subtitle">Pritaikykite nuolaidas visam planui</span>
+            </div>
+        </div>
+
+        <div class="controls-grid">
+            <div class="control-item">
+                <label class="control-label">Mūsų nuolaida (%)</label>
+                <div class="input-group-professional">
+                    <input type="number"
+                           class="form-control-professional"
+                           id="globalOurDiscount"
+                           value="{{ plan.our_discount }}"
+                           min="0"
+                           max="100"
+                           step="1">
+                    <span class="input-suffix">%</span>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Kliento nuolaida (%)</label>
-                    <div class="input-group">
-                        <input type="number"
-                               class="form-control"
-                               id="globalClientDiscount"
-                               value="{{ plan.client_discount }}"
-                               min="0"
-                               max="100"
-                               step="1">
-                        <span class="input-group-text">%</span>
-                    </div>
+            </div>
+
+            <div class="control-item">
+                <label class="control-label">Kliento nuolaida (%)</label>
+                <div class="input-group-professional">
+                    <input type="number"
+                           class="form-control-professional"
+                           id="globalClientDiscount"
+                           value="{{ plan.client_discount }}"
+                           min="0"
+                           max="100"
+                           step="1">
+                    <span class="input-suffix">%</span>
                 </div>
-                <div class="col-md-3">
-                    <button class="btn btn-primary w-100" onclick="applyDiscountsToAll()">
-                        <i class="bi bi-check-circle"></i> Pritaikyti visoms eilutėms
-                    </button>
-                </div>
-                <div class="col-md-3">
-                    <small class="text-muted">
-                        Įrašykite nuolaidas ir paspauskite "Pritaikyti" kad atnaujinti visą lentelę
-                    </small>
-                </div>
+            </div>
+
+            <div class="control-item">
+                <button class="btn-professional btn-primary btn-full" onclick="applyDiscountsToAll()">
+                    <i class="bi bi-check-circle"></i>
+                    <span>Pritaikyti visoms eilutėms</span>
+                </button>
+            </div>
+
+            <div class="control-item">
+                <small class="help-text">
+                    Įrašykite nuolaidas ir paspauskite "Pritaikyti" kad atnaujinti visą lentelę
+                </small>
             </div>
         </div>
     </div>
 
     <!-- Excel-style Planning Table -->
-    <div class="table-container">
-        <div class="table-responsive">
-            <table class="table table-bordered table-sm radio-planning-table">
-                <thead class="table-light">
-                    <tr>
-                        <th rowspan="2" style="vertical-align: middle;">Kanalas</th>
-                        <th rowspan="2" style="vertical-align: middle;">Laikas</th>
-                        <th rowspan="2" style="vertical-align: middle;">Savaitės<br>diena</th>
-                        <th rowspan="2" style="vertical-align: middle;">Spec.<br>pozicija</th>
-                        <th rowspan="2" style="vertical-align: middle;">Klipų<br>skaičius</th>
-                        <th rowspan="2" style="vertical-align: middle;">Klipo<br>trukmė</th>
-                        <th rowspan="2" style="vertical-align: middle;">GRP</th>
-                        <th rowspan="2" style="vertical-align: middle;">TRP</th>
-                        <th rowspan="2" style="vertical-align: middle;">Viso<br>GRP</th>
-                        <th rowspan="2" style="vertical-align: middle;">Viso<br>TRP</th>
-                        <th rowspan="2" style="vertical-align: middle;">Affinity</th>
-                        <th rowspan="2" style="vertical-align: middle;">1 sec TRP<br>kaina</th>
-                        <th rowspan="2" style="vertical-align: middle;">Įkainis</th>
-                        <th rowspan="2" style="vertical-align: middle;">Antkainis</th>
-                        <th rowspan="2" style="vertical-align: middle;">Antkainis<br>padidintas</th>
-                        <th rowspan="2" style="vertical-align: middle;">Klipo kaina<br>EUR</th>
-                        <th rowspan="2" style="vertical-align: middle;">Kaina po<br>nuolaidos EUR</th>
-                        <th rowspan="2" style="vertical-align: middle;">Viso kaina<br>iki nuolaidos</th>
-                        <th rowspan="2" style="vertical-align: middle;">Viso kaina<br>po nuolaidos</th>
-                        <th rowspan="2" style="vertical-align: middle;">Mūsų nuolaida %</th>
-                        <th rowspan="2" style="vertical-align: middle;">Kliento nuolaida %</th>
-                        <!-- Calendar date headers will be added here -->
-                    </tr>
-                    <tr class="calendar-date-row">
-                        <!-- Date headers -->
-                        {% for date in calendar_data.dates %}
-                            <th class="calendar-date-header">{{ date.strftime('%m/%d') }}</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody id="planningTableBody">
+    <div class="professional-section">
+        <div class="section-header">
+            <div class="section-title">
+                <h3>Detalus planavimo planas</h3>
+                <span class="section-subtitle">Kampanijos spotų paskirstymas ir finansinė analizė</span>
+            </div>
+        </div>
+
+        <div class="planning-table-container">
+            <div class="table-responsive">
+                <table class="planning-table">
+                    <thead>
+                        <tr class="main-header">
+                            <th rowspan="2" class="station-header">Kanalas</th>
+                            <th rowspan="2" class="time-header">Laikas</th>
+                            <th rowspan="2" class="weekday-header">Savaitės<br>diena</th>
+                            <th rowspan="2" class="spec-header">Spec.<br>pozicija</th>
+                            <th rowspan="2" class="count-header">Klipų<br>skaičius</th>
+                            <th rowspan="2" class="duration-header">Klipo<br>trukmė</th>
+                            <th colspan="5" class="rating-group-header">Reitingai ir efektyvumas</th>
+                            <th colspan="5" class="pricing-group-header">Kainodara</th>
+                            <th colspan="4" class="totals-group-header">Viso sumos</th>
+                            <th colspan="2" class="discount-group-header">Nuolaidos</th>
+                            <!-- Calendar date headers will be added here -->
+                        </tr>
+                        <tr class="sub-header">
+                            <!-- Rating columns -->
+                            <th class="grp-header">GRP</th>
+                            <th class="trp-header">TRP</th>
+                            <th class="total-grp-header">Viso<br>GRP</th>
+                            <th class="total-trp-header">Viso<br>TRP</th>
+                            <th class="affinity-header">Affinity</th>
+                            <!-- Pricing columns -->
+                            <th class="trp-price-header">1 sec TRP<br>kaina</th>
+                            <th class="base-price-header">Įkainis</th>
+                            <th class="seasonal-header">Antkainis</th>
+                            <th class="price-with-index-header">Antkainis<br>padidintas</th>
+                            <th class="clip-price-header">Klipo kaina<br>EUR</th>
+                            <!-- Totals columns -->
+                            <th class="final-price-header">Kaina po<br>nuolaidos EUR</th>
+                            <th class="total-before-header">Viso kaina<br>iki nuolaidos</th>
+                            <th class="total-after-header">Viso kaina<br>po nuolaidos</th>
+                            <th class="our-discount-header">Mūsų nuolaida %</th>
+                            <th class="client-discount-header">Kliento nuolaida %</th>
+                            <!-- Date headers -->
+                            {% for date in calendar_data.dates %}
+                                <th class="calendar-date-header {% if date.weekday() >= 5 %}weekend-date{% endif %}">
+                                    <div class="date-info">
+                                        <span class="date-day">{{ date.strftime('%d') }}</span>
+                                        <span class="date-month">{{ date.strftime('%m') }}</span>
+                                    </div>
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody id="planningTableBody">
                     <!-- Radio station time slots will be populated here -->
                     {% for station in stations %}
                         {% if not loop.first %}
@@ -282,55 +355,6 @@
     </div>
 </div>
 
-<!-- Add Spot Modal -->
-<div class="modal fade" id="addSpotModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Pridėti spotą</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addSpotForm">
-                    <div class="mb-3">
-                        <label for="stationSelect" class="form-label">Radijo stotis</label>
-                        <select class="form-select" id="stationSelect" required>
-                            <option value="">Pasirinkite stotį</option>
-                            {% for station in stations %}
-                                <option value="{{ station.id }}">{{ station.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="dateInput" class="form-label">Data</label>
-                        <input type="date" class="form-control" id="dateInput"
-                               min="{{ plan.start_date }}" max="{{ plan.end_date }}" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="timeSlotSelect" class="form-label">Laiko tarpas</label>
-                        <select class="form-select" id="timeSlotSelect" required>
-                            <option value="">Pasirinkite laiką</option>
-                            {% for slot in time_slots %}
-                                <option value="{{ slot }}">{{ slot }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="spotCount" class="form-label">Spotų skaičius</label>
-                        <input type="number" class="form-control" id="spotCount" value="1" min="1" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
-                <button type="button" class="btn btn-primary" onclick="addSpot()">Pridėti</button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -397,38 +421,82 @@ tr:not(.weekend-row) .weekend-cell {
 
 {% block extra_js %}
 <script>
-// Generate calendar dates on page load
+// Load data on page load
 document.addEventListener('DOMContentLoaded', function() {
-    generateCalendarDates();
+    generateCalendarGrid();
     loadStationRatings();
     loadStationPrices();
     loadExistingSpots();
 });
 
-function generateCalendarDates() {
+function generateCalendarGrid() {
     const startDate = new Date('{{ plan.start_date }}');
     const endDate = new Date('{{ plan.end_date }}');
-    const calendarContainer = document.getElementById('calendarDates');
+    const calendarHeader = document.getElementById('calendar-header');
+    const calendarBody = document.getElementById('calendar-body');
 
+    if (!calendarHeader || !calendarBody) return;
+
+    // Generate header with dates
+    let headerHtml = '<th style="min-width: 150px;">Radijo stotis</th>';
     let currentDate = new Date(startDate);
-    let html = '<div class="d-flex">';
+    const dates = [];
 
     while (currentDate <= endDate) {
-        const dateStr = currentDate.toLocaleDateString('lt-LT', { month: '2-digit', day: '2-digit' });
+        const dayName = currentDate.toLocaleDateString('lt-LT', { weekday: 'short' });
+        const dateStr = currentDate.toLocaleDateString('lt-LT', { day: '2-digit', month: '2-digit' });
         const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+        const dateIso = currentDate.toISOString().split('T')[0];
 
-        html += `
-            <div class="calendar-date ${isWeekend ? 'weekend' : ''}" data-date="${currentDate.toISOString().split('T')[0]}">
-                <div class="date-header">${dateStr}</div>
-                <div class="date-content"></div>
-            </div>
+        dates.push({
+            iso: dateIso,
+            dayName: dayName,
+            dateStr: dateStr,
+            isWeekend: isWeekend
+        });
+
+        headerHtml += `
+            <th class="text-center ${isWeekend ? 'weekend-header' : ''}" style="min-width: 80px;">
+                <div class="fw-bold">${dayName}</div>
+                <div class="small">${dateStr}</div>
+            </th>
         `;
 
         currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    html += '</div>';
-    calendarContainer.innerHTML = html;
+    calendarHeader.innerHTML = headerHtml;
+
+    // Generate body with station rows
+    const stations = [
+        {% for station in stations %}
+        { id: {{ station.id }}, name: '{{ station.name }}' }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    let bodyHtml = '';
+    stations.forEach(station => {
+        bodyHtml += `<tr data-station-id="${station.id}">`;
+        bodyHtml += `<td class="station-name-cell"><strong>${station.name}</strong></td>`;
+
+        dates.forEach(date => {
+            bodyHtml += `
+                <td class="calendar-input-cell ${date.isWeekend ? 'weekend-cell' : ''}" data-date="${date.iso}" data-station-id="${station.id}">
+                    <input type="number"
+                           class="form-control form-control-sm text-center"
+                           min="0"
+                           max="99"
+                           value="0"
+                           style="width: 60px; font-size: 11px;"
+                           onchange="updateSpotCount(this)">
+                </td>
+            `;
+        });
+
+        bodyHtml += '</tr>';
+    });
+
+    calendarBody.innerHTML = bodyHtml;
 }
 
 function loadStationRatings() {
@@ -609,6 +677,84 @@ function updateRowTotals(row) {
     // Update station totals after updating row totals
     const stationId = row.dataset.stationId;
     updateStationTotals(stationId);
+
+    // Update calendar view
+    updateCalendarSpotCounts();
+}
+
+function updateSpotCount(input) {
+    const stationId = input.closest('td').dataset.stationId;
+    const date = input.closest('td').dataset.date;
+    const spotCount = parseInt(input.value) || 0;
+
+    // Update the main planning table
+    const planningRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+    planningRows.forEach(row => {
+        const cell = row.querySelector(`td[data-date="${date}"]`);
+        if (cell) {
+            const indicator = cell.querySelector('.spot-indicator');
+            if (indicator) {
+                indicator.textContent = spotCount > 0 ? spotCount : '';
+                cell.classList.toggle('has-spot', spotCount > 0);
+                updateRowTotals(row);
+            }
+        }
+    });
+
+    // Save to backend if needed
+    if (spotCount > 0) {
+        saveSpotToBackend(stationId, date, spotCount);
+    }
+}
+
+function saveSpotToBackend(stationId, date, spotCount) {
+    const spotData = {
+        station_id: parseInt(stationId),
+        date: date,
+        time_slot: '06:00-10:00', // Default time slot, you might want to make this configurable
+        spot_count: spotCount
+    };
+
+    fetch('/api/plans/{{ plan.id }}/spots', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(spotData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('Error saving spot:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function updateCalendarSpotCounts() {
+    // This function is now simpler since the calendar inputs directly control the values
+    // We just need to sync existing spots from the planning table to calendar inputs
+    const calendarInputs = document.querySelectorAll('.calendar-input-cell input');
+
+    calendarInputs.forEach(input => {
+        const stationId = input.closest('td').dataset.stationId;
+        const date = input.closest('td').dataset.date;
+
+        // Find corresponding spot count in planning table
+        let totalSpots = 0;
+        const planningRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+        planningRows.forEach(row => {
+            const cell = row.querySelector(`td[data-date="${date}"]`);
+            if (cell) {
+                const spotCount = parseInt(cell.querySelector('.spot-indicator')?.textContent) || 0;
+                totalSpots += spotCount;
+            }
+        });
+
+        input.value = totalSpots;
+    });
 }
 
 function updateStationTotals(stationId) {
@@ -751,83 +897,599 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-function addSpot() {
-    const stationId = document.getElementById('stationSelect').value;
-    const date = document.getElementById('dateInput').value;
-    const timeSlot = document.getElementById('timeSlotSelect').value;
-    const spotCount = parseInt(document.getElementById('spotCount').value);
-
-    const spotData = {
-        station_id: parseInt(stationId),
-        date: date,
-        time_slot: timeSlot,
-        spot_count: spotCount
-    };
-
-    fetch('/api/plans/{{ plan.id }}/spots', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(spotData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert('Klaida: ' + data.error);
-        } else {
-            // Update the table
-            const row = document.querySelector(`tr[data-station-id="${stationId}"][data-time-slot="${timeSlot}"]`);
-            if (row) {
-                const cell = row.querySelector(`td[data-date="${date}"]`);
-                if (cell) {
-                    const indicator = cell.querySelector('.spot-indicator');
-                    indicator.textContent = spotCount;
-                    cell.classList.add('has-spot');
-                    updateRowTotals(row);
-                }
-            }
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addSpotModal'));
-            modal.hide();
-
-            // Reset form
-            document.getElementById('addSpotForm').reset();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Nepavyko pridėti spoto');
-    });
-}
 </script>
 
 <style>
-.calendar-container {
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
+/* Professional Design System */
+:root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary-color: #64748b;
+    --success-color: #059669;
+    --background-light: #f8fafc;
+    --background-white: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
 }
 
-.calendar-scroll-container {
+/* Header Section */
+.header-section {
+    margin-bottom: 2rem;
+}
+
+.header-card {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 2rem;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.campaign-title h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+}
+
+.campaign-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Info Grid */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.clips-section {
+    border-top: 1px solid var(--border-light);
+    padding-top: 1.5rem;
+}
+
+.info-item {
+    background: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.info-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.info-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.info-icon {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.info-label {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.info-value {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* Professional Buttons */
+.btn-professional {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-professional.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-professional.btn-primary:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-professional.btn-secondary {
+    background: var(--background-white);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.btn-professional.btn-secondary:hover {
+    background: var(--background-light);
+    color: var(--text-primary);
+    border-color: var(--secondary-color);
+}
+
+.btn-professional.btn-full {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Professional Sections */
+.professional-section {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--background-light);
+}
+
+.section-title h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+}
+
+.section-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Controls Grid */
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+}
+
+.control-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-label {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.input-group-professional {
+    position: relative;
+    display: flex;
+}
+
+.form-control-professional {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--background-white);
+    transition: all 0.2s ease;
+}
+
+.form-control-professional:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+}
+
+.input-suffix {
+    padding: 0.5rem 0.75rem;
+    background: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-left: none;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.help-text {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-top: 0.5rem;
+}
+
+/* Table Container */
+.table-container {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    overflow: hidden;
+}
+
+/* Professional Tables */
+.professional-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    background: var(--background-white);
+}
+
+.professional-table th {
+    background: var(--background-light);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 0.75rem;
+    text-align: center;
+    border-bottom: 2px solid var(--border-color);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.professional-table .station-column {
+    text-align: left;
+    min-width: 150px;
+    background: var(--background-white);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.professional-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-light);
+    text-align: center;
+    vertical-align: middle;
+}
+
+.professional-table tbody tr:hover {
+    background: var(--background-light);
+}
+
+/* Weekend styling */
+.weekend-header {
+    background: #fef2f2 !important;
+    color: #991b1b;
+}
+
+.weekend-cell {
+    background: #fef2f2;
+}
+
+.weekend-cell input {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+/* Calendar inputs */
+.calendar-input-cell input {
+    width: 60px;
+    padding: 0.25rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    font-size: 0.75rem;
+    background: var(--background-white);
+}
+
+.calendar-input-cell input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgb(37 99 235 / 0.1);
+}
+
+/* Planning Table Styling */
+.planning-table-container {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    overflow: hidden;
+    background: var(--background-white);
+}
+
+.planning-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    background: var(--background-white);
+    min-width: 1800px; /* Ensure horizontal scrolling when needed */
+}
+
+/* Main Header Row */
+.planning-table .main-header th {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    color: white;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: none;
+    vertical-align: middle;
+    position: relative;
+}
+
+/* Group Headers with Different Colors */
+.rating-group-header {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+}
+
+.pricing-group-header {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+}
+
+.totals-group-header {
+    background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important;
+}
+
+.discount-group-header {
+    background: linear-gradient(135deg, #ea580c, #f97316) !important;
+}
+
+/* Sub Header Row */
+.planning-table .sub-header th {
+    background: var(--background-light);
+    color: var(--text-primary);
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.65rem;
+    border-bottom: 2px solid var(--border-color);
+    vertical-align: middle;
+}
+
+/* Station and Basic Info Headers */
+.station-header, .time-header, .weekday-header {
+    background: linear-gradient(135deg, #475569, #64748b) !important;
+    color: white;
+    min-width: 100px;
+}
+
+.station-header {
+    min-width: 120px;
+    text-align: left !important;
+}
+
+/* Date Headers */
+.calendar-date-header {
+    background: var(--background-light) !important;
+    min-width: 50px;
+    padding: 0.5rem 0.25rem !important;
+}
+
+.calendar-date-header.weekend-date {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2) !important;
+    color: #991b1b;
+}
+
+.date-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.date-day {
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.date-month {
+    font-size: 0.6rem;
+    opacity: 0.8;
+}
+
+/* Table Body Styling */
+.planning-table tbody td {
+    padding: 0.5rem 0.25rem;
+    border-bottom: 1px solid var(--border-light);
+    text-align: center;
+    vertical-align: middle;
+    font-size: 0.7rem;
+    background: var(--background-white);
+}
+
+.planning-table tbody tr:hover {
+    background: var(--background-light);
+}
+
+/* Station Separator Rows */
+.station-separator td {
+    height: 8px !important;
+    padding: 0 !important;
+    background: linear-gradient(90deg, var(--border-color), var(--border-light), var(--border-color)) !important;
+    border: none !important;
+}
+
+/* Station Header Rows */
+.station-header-row td {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0) !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    border-top: 2px solid var(--border-color) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0.75rem 0.5rem !important;
+}
+
+/* Station Totals Rows */
+.station-totals td {
+    background: linear-gradient(135deg, #fff7ed, #ffedd5) !important;
+    font-weight: 600 !important;
+    border-top: 2px solid #fed7aa !important;
+    border-bottom: 2px solid #fed7aa !important;
+}
+
+/* Weekend Rows */
+.weekend-row td {
+    background: #fefefe !important;
+}
+
+.weekend-row:hover td {
+    background: #fef2f2 !important;
+}
+
+/* Calendar Cells */
+.calendar-cell {
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    min-width: 50px;
+}
+
+.calendar-cell:hover {
+    background: #e0f2fe !important;
+    transform: scale(1.05);
+}
+
+.calendar-cell.has-spot {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+    border: 1px solid #22c55e !important;
+}
+
+.spot-indicator {
+    font-weight: 700;
+    color: #059669;
+    font-size: 0.8rem;
+}
+
+/* Numeric Cells */
+.grp, .trp, .total-grp, .total-trp, .affinity,
+.trp-price, .base-price, .final-price, .total-before-discount, .total-after-discount {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 500;
+    min-width: 70px;
+}
+
+/* Weekend Calendar Cells */
+.weekend-cell {
+    background: #fef2f2 !important;
+}
+
+.weekend-row .calendar-cell:not(.weekend-cell) {
+    background: #f5f5f5 !important;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Table responsive wrapper */
+.table-responsive {
     overflow-x: auto;
     max-width: 100%;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
-.calendar-dates .d-flex {
-    min-width: max-content;
+/* Calendar table styling */
+#calendar-table {
+    font-size: 13px;
 }
 
-.calendar-date {
-    min-width: 60px;
-    border-right: 1px solid #dee2e6;
-    padding: 8px 4px;
+#calendar-table th {
+    vertical-align: middle;
     text-align: center;
-    font-size: 12px;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 8px 4px;
 }
 
-.calendar-date.weekend {
-    background-color: #f8f9fa;
+.weekend-header {
+    background-color: #f8d7da !important;
+    color: #721c24;
+}
+
+.station-name-cell {
+    background-color: #e9ecef;
+    font-weight: bold;
+    vertical-align: middle;
+    padding: 8px 12px;
+    min-width: 150px;
+}
+
+.calendar-input-cell {
+    text-align: center;
+    vertical-align: middle;
+    padding: 4px !important;
+    min-width: 80px;
+}
+
+.calendar-input-cell.weekend-cell {
+    background-color: #fef2f2;
+}
+
+.calendar-input-cell input {
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 2px 4px;
+    text-align: center;
+    width: 60px;
+    margin: 0 auto;
+}
+
+.calendar-input-cell input:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.weekend-cell input {
+    background-color: #fff5f5;
+    border-color: #f8c2c5;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .radio-planning-table {
