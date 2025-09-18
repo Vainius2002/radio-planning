@@ -12,74 +12,51 @@
         </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-grid mb-4">
-        <div class="stat-card stat-card-primary">
-            <div class="stat-content">
-                <div class="stat-info">
-                    <div class="stat-label">PLANAI</div>
-                    <div class="stat-value">{{ plans | length }}</div>
+
+    <!-- Summary Cards from Planning -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-6">
+        <div class="professional-card">
+            <div class="card-content">
+                <div class="card-icon bg-blue-100">
+                    <i class="bi bi-calendar-check text-blue-600"></i>
                 </div>
-                <div class="stat-icon">
-                    <i class="bi bi-file-text"></i>
+                <div class="card-stats">
+                    <p class="card-title">Viso planų</p>
+                    <p class="card-number" id="totalPlans">{{ plans | length }}</p>
                 </div>
-            </div>
-            <div class="stat-action">
-                <a href="{{ url_for('main.planning') }}" class="btn-professional btn-primary">
-                    <span>Peržiūrėti</span>
-                </a>
             </div>
         </div>
-
-        <div class="stat-card stat-card-success">
-            <div class="stat-content">
-                <div class="stat-info">
-                    <div class="stat-label">RADIJO STOTYS</div>
-                    <div class="stat-value">{{ stations | length }}</div>
+        <div class="professional-card">
+            <div class="card-content">
+                <div class="card-icon bg-green-100">
+                    <i class="bi bi-play-circle text-green-600"></i>
                 </div>
-                <div class="stat-icon">
-                    <i class="bi bi-broadcast"></i>
+                <div class="card-stats">
+                    <p class="card-title">Aktyvūs planai</p>
+                    <p class="card-number" id="activePlans">0</p>
                 </div>
-            </div>
-            <div class="stat-action">
-                <a href="{{ url_for('main.stations') }}" class="btn-professional btn-success">
-                    <span>Valdyti</span>
-                </a>
             </div>
         </div>
-
-        <div class="stat-card stat-card-info">
-            <div class="stat-content">
-                <div class="stat-info">
-                    <div class="stat-label">GRUPĖS</div>
-                    <div class="stat-value">{{ groups | length }}</div>
+        <div class="professional-card">
+            <div class="card-content">
+                <div class="card-icon bg-yellow-100">
+                    <i class="bi bi-clock text-yellow-600"></i>
                 </div>
-                <div class="stat-icon">
-                    <i class="bi bi-people"></i>
+                <div class="card-stats">
+                    <p class="card-title">Šį mėnesį</p>
+                    <p class="card-number" id="thisMonthPlans">0</p>
                 </div>
-            </div>
-            <div class="stat-action">
-                <a href="{{ url_for('main.stations') }}" class="btn-professional btn-info">
-                    <span>Peržiūrėti</span>
-                </a>
             </div>
         </div>
-
-        <div class="stat-card stat-card-warning">
-            <div class="stat-content">
-                <div class="stat-info">
-                    <div class="stat-label">NAUJAS PLANAS</div>
-                    <div class="stat-description">Sukurti naują</div>
+        <div class="professional-card">
+            <div class="card-content">
+                <div class="card-icon bg-purple-100">
+                    <i class="bi bi-graph-up text-purple-600"></i>
                 </div>
-                <div class="stat-icon">
-                    <i class="bi bi-plus-circle"></i>
+                <div class="card-stats">
+                    <p class="card-title">Pabaigti</p>
+                    <p class="card-number" id="completedPlans">0</p>
                 </div>
-            </div>
-            <div class="stat-action">
-                <a href="{{ url_for('main.new_plan') }}" class="btn-professional btn-warning">
-                    <i class="bi bi-plus-circle"></i>
-                    <span>Kurti</span>
-                </a>
             </div>
         </div>
     </div>
@@ -539,5 +516,142 @@
     color: var(--text-muted);
     margin: 0;
 }
+
+/* Summary Cards */
+.professional-card {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.professional-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.card-content {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.card-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.card-stats {
+    flex: 1;
+}
+
+.card-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 0.25rem 0;
+}
+
+.card-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1;
+}
+
+/* Color utilities */
+.bg-blue-100 { background-color: #dbeafe; }
+.text-blue-600 { color: #2563eb; }
+.bg-green-100 { background-color: #dcfce7; }
+.text-green-600 { color: #16a34a; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.text-yellow-600 { color: #d97706; }
+.bg-purple-100 { background-color: #f3e8ff; }
+.text-purple-600 { color: #9333ea; }
+
+/* Grid utilities */
+.grid {
+    display: grid;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .sm\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.mb-6 {
+    margin-bottom: 1.5rem;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    updateSummaryCards();
+
+    function updateSummaryCards() {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        let activePlans = 0;
+        let thisMonthPlans = 0;
+        let completedPlans = 0;
+
+        // Calculate plan statistics from the DOM table data
+        $('.professional-table tbody tr').each(function() {
+            const dateText = $(this).find('td:nth-child(3)').text(); // Date column
+            const createdText = $(this).find('td:nth-child(4)').text(); // Created column
+
+            if (dateText && dateText.includes(' - ')) {
+                const [startDateStr, endDateStr] = dateText.split(' - ');
+                const startDate = new Date(startDateStr);
+                const endDate = new Date(endDateStr);
+
+                // Active plans (currently running)
+                if (today >= startDate && today <= endDate) {
+                    activePlans++;
+                }
+
+                // Completed plans (ended)
+                if (today > endDate) {
+                    completedPlans++;
+                }
+            }
+
+            if (createdText) {
+                const createdDate = new Date(createdText);
+                // This month plans (created this month)
+                if (createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear) {
+                    thisMonthPlans++;
+                }
+            }
+        });
+
+        $('#activePlans').text(activePlans);
+        $('#thisMonthPlans').text(thisMonthPlans);
+        $('#completedPlans').text(completedPlans);
+    }
+});
+</script>
 {% endblock %}

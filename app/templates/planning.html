@@ -9,8 +9,8 @@
         <div class="header-content">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Radijo planai</h1>
-                    <p class="text-gray-600">Valdykite ir peržiūrėkite visus radijo planus</p>
+                    <h1 class="text-3xl font-bold mb-2">Radijo planai</h1>
+                    <p class="opacity-90">Valdykite ir peržiūrėkite visus radijo planus</p>
                 </div>
                 <a href="{{ url_for('main.new_plan') }}" class="btn-professional btn-primary">
                     <i class="bi bi-plus-circle"></i>
@@ -20,12 +20,48 @@
         </div>
     </div>
 
+
     <!-- Plans Table -->
     <div class="professional-section">
         <div class="section-header">
             <div class="section-title">
                 <h3>Visi planai</h3>
-                <span class="section-subtitle">{{ plans | length }} planų iš viso</span>
+                <span class="section-subtitle"><span id="filteredCount">{{ plans | length }}</span> planų rodoma</span>
+            </div>
+        </div>
+
+        <!-- Integrated Filters -->
+        <div class="filter-content">
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label for="searchFilter" class="filter-label">Paieška</label>
+                    <input type="text" id="searchFilter" class="filter-input" placeholder="Kampanija, projektas, klientas...">
+                </div>
+                <div class="filter-item">
+                    <label for="clientFilter" class="filter-label">Klientas</label>
+                    <select id="clientFilter" class="filter-select">
+                        <option value="">Visi klientai</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="dateFilter" class="filter-label">Laikotarpis</label>
+                    <select id="dateFilter" class="filter-select">
+                        <option value="">Visi laikotarpiai</option>
+                        <option value="thisWeek">Ši savaitė</option>
+                        <option value="thisMonth">Šis mėnuo</option>
+                        <option value="lastMonth">Praėjęs mėnuo</option>
+                        <option value="thisYear">Šie metai</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="sortFilter" class="filter-label">Rūšiavimas</label>
+                    <select id="sortFilter" class="filter-select">
+                        <option value="newest">Naujausi pirma</option>
+                        <option value="oldest">Seniausi pirma</option>
+                        <option value="campaign">Kampanija (A-Z)</option>
+                        <option value="client">Klientas (A-Z)</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -46,7 +82,13 @@
                     </thead>
                     <tbody>
                         {% for plan in plans %}
-                        <tr>
+                        <tr class="plan-row"
+                            data-campaign="{{ (plan.campaign_name or '')|lower }}"
+                            data-project="{{ (plan.project_name or '')|lower }}"
+                            data-client="{{ (plan.client_brand_name or '')|lower }}"
+                            data-start-date="{{ plan.start_date.strftime('%Y-%m-%d') }}"
+                            data-end-date="{{ plan.end_date.strftime('%Y-%m-%d') }}"
+                            data-created="{{ plan.created_at.strftime('%Y-%m-%d') }}">
                             <td class="font-medium text-gray-900">#{{ plan.id }}</td>
                             <td>{{ plan.campaign_name or 'N/A' }}</td>
                             <td>{{ plan.project_name or 'N/A' }}</td>
@@ -115,7 +157,8 @@
 
 /* Dashboard Header */
 .dashboard-header {
-    background: var(--background-white);
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -255,5 +298,278 @@
     color: var(--text-muted);
     margin: 0;
 }
+
+/* Summary Cards */
+.professional-card {
+    background: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.professional-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.card-content {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.card-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.card-stats {
+    flex: 1;
+}
+
+.card-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 0.25rem 0;
+}
+
+.card-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1;
+}
+
+/* Filter Section */
+.filter-content {
+    padding: 1.5rem 2rem;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.filter-input,
+.filter-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background: var(--background-white);
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.filter-results {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Plan row visibility */
+.plan-row.hidden {
+    display: none !important;
+}
+
+/* Color utilities */
+.bg-blue-100 { background-color: #dbeafe; }
+.text-blue-600 { color: #2563eb; }
+.bg-green-100 { background-color: #dcfce7; }
+.text-green-600 { color: #16a34a; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.text-yellow-600 { color: #d97706; }
+.bg-purple-100 { background-color: #f3e8ff; }
+.text-purple-600 { color: #9333ea; }
+
+.opacity-90 {
+    opacity: 0.9;
+}
+
+/* Grid utilities */
+.grid {
+    display: grid;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .sm\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.mb-6 {
+    margin-bottom: 1.5rem;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize client filter options
+    initializeFilters();
+
+    // Filter event listeners
+    $('#searchFilter').on('input', filterPlans);
+    $('#clientFilter').on('change', filterPlans);
+    $('#dateFilter').on('change', filterPlans);
+    $('#sortFilter').on('change', sortPlans);
+
+    function initializeFilters() {
+        // Populate client filter
+        const clients = new Set();
+        $('.plan-row').each(function() {
+            const client = $(this).data('client');
+            if (client) {
+                clients.add(client);
+            }
+        });
+
+        clients.forEach(client => {
+            $('#clientFilter').append($('<option>', {
+                value: client,
+                text: client.charAt(0).toUpperCase() + client.slice(1)
+            }));
+        });
+    }
+
+
+    function filterPlans() {
+        const searchTerm = $('#searchFilter').val().toLowerCase();
+        const clientFilter = $('#clientFilter').val();
+        const dateFilter = $('#dateFilter').val();
+
+        let visibleCount = 0;
+
+        $('.plan-row').each(function() {
+            let visible = true;
+            const $row = $(this);
+
+            // Search filter
+            if (searchTerm) {
+                const campaign = $row.data('campaign');
+                const project = $row.data('project');
+                const client = $row.data('client');
+                const searchableText = `${campaign} ${project} ${client}`.toLowerCase();
+
+                if (!searchableText.includes(searchTerm)) {
+                    visible = false;
+                }
+            }
+
+            // Client filter
+            if (clientFilter && $row.data('client') !== clientFilter) {
+                visible = false;
+            }
+
+            // Date filter
+            if (dateFilter) {
+                const startDate = new Date($row.data('start-date'));
+                const endDate = new Date($row.data('end-date'));
+                const today = new Date();
+
+                switch(dateFilter) {
+                    case 'thisWeek':
+                        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        const weekLater = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+                        visible = visible && (startDate <= weekLater && endDate >= weekAgo);
+                        break;
+                    case 'thisMonth':
+                        visible = visible && (startDate.getMonth() === today.getMonth() && startDate.getFullYear() === today.getFullYear());
+                        break;
+                    case 'lastMonth':
+                        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        visible = visible && (startDate.getMonth() === lastMonth.getMonth() && startDate.getFullYear() === lastMonth.getFullYear());
+                        break;
+                    case 'thisYear':
+                        visible = visible && startDate.getFullYear() === today.getFullYear();
+                        break;
+                }
+            }
+
+            if (visible) {
+                $row.removeClass('hidden');
+                visibleCount++;
+            } else {
+                $row.addClass('hidden');
+            }
+        });
+
+        $('#filteredCount').text(visibleCount);
+    }
+
+    function sortPlans() {
+        const sortBy = $('#sortFilter').val();
+        const $tbody = $('.professional-table tbody');
+        const rows = $('.plan-row').get();
+
+        rows.sort(function(a, b) {
+            const $a = $(a);
+            const $b = $(b);
+
+            switch(sortBy) {
+                case 'newest':
+                    return new Date($b.data('created')) - new Date($a.data('created'));
+                case 'oldest':
+                    return new Date($a.data('created')) - new Date($b.data('created'));
+                case 'campaign':
+                    return $a.data('campaign').localeCompare($b.data('campaign'));
+                case 'client':
+                    return $a.data('client').localeCompare($b.data('client'));
+                default:
+                    return 0;
+            }
+        });
+
+        $tbody.empty().append(rows);
+    }
+
+});
+</script>
 {% endblock %}

@@ -9,10 +9,10 @@
         <div class="header-content">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Radijo stotys</h1>
-                    <p class="text-gray-600">Valdykite radijo grupes ir stotis</p>
+                    <h1 class="text-3xl font-bold mb-2">Radijo stotys</h1>
+                    <p class="opacity-90">Valdykite radijo grupes ir stotis</p>
                 </div>
-                <button class="btn-professional btn-success" disabled>
+                <button class="btn-professional btn-primary" data-bs-toggle="modal" data-bs-target="#groupModal">
                     <i class="bi bi-plus-circle"></i>
                     <span>Nauja grupė</span>
                 </button>
@@ -31,7 +31,7 @@
                     <span class="group-count">{{ group.stations.count() }} stotys</span>
                 </div>
                 <div class="group-actions">
-                    <button class="btn-professional btn-primary btn-sm " disabled>
+                    <button class="btn-professional btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#stationModal" data-group-id="{{ group.id }}">
                         <i class="bi bi-plus-circle"></i>
                         <span>Pridėti stotį</span>
                     </button>
@@ -62,7 +62,7 @@
                                 <i class="bi bi-currency-euro"></i>
                                 <span>Įkainiai</span>
                             </a>
-                            <button class="btn-professional btn-danger btn-sm " disabled>
+                            <button class="btn-professional btn-danger btn-sm delete-station" data-station-id="{{ station.id }}" data-station-name="{{ station.name }}">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -99,6 +99,55 @@
     {% endif %}
 </div>
 
+<!-- Station Modal -->
+<div class="modal fade" id="stationModal" tabindex="-1" aria-labelledby="stationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="stationModalLabel">Pridėti stotį</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="stationForm">
+                <div class="modal-body">
+                    <input type="hidden" id="groupId" name="group_id">
+                    <div class="mb-3">
+                        <label for="stationName" class="form-label">Stoties pavadinimas</label>
+                        <input type="text" class="form-control" id="stationName" name="name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-primary">Pridėti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Group Modal -->
+<div class="modal fade" id="groupModal" tabindex="-1" aria-labelledby="groupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="groupModalLabel">Pridėti grupę</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="groupForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="groupName" class="form-label">Grupės pavadinimas</label>
+                        <input type="text" class="form-control" id="groupName" name="name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Atšaukti</button>
+                    <button type="submit" class="btn btn-primary">Pridėti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_css %}
@@ -127,7 +176,8 @@
 
 /* Dashboard Header */
 .dashboard-header {
-    background: var(--background-white);
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -375,4 +425,78 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Handle station modal
+    $('#stationModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var groupId = button.data('group-id');
+        $('#groupId').val(groupId);
+    });
+
+    // Handle station form submission
+    $('#stationForm').on('submit', function(e) {
+        e.preventDefault();
+
+        var formData = {
+            name: $('#stationName').val(),
+            group_id: $('#groupId').val()
+        };
+
+        $.ajax({
+            url: '/stations/add',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                alert('Klaida pridedant stotį: ' + xhr.responseText);
+            }
+        });
+    });
+
+    // Handle station deletion
+    $('.delete-station').on('click', function(e) {
+        e.preventDefault();
+
+        var stationId = $(this).data('station-id');
+        var stationName = $(this).data('station-name');
+
+        if (confirm('Ar tikrai norite ištrinti stotį "' + stationName + '"?')) {
+            // Create a form and submit it
+            var form = $('<form>', {
+                'method': 'POST',
+                'action': '/stations/' + stationId + '/delete'
+            });
+
+            $('body').append(form);
+            form.submit();
+        }
+    });
+
+    // Handle group form submission
+    $('#groupForm').on('submit', function(e) {
+        e.preventDefault();
+
+        var formData = {
+            name: $('#groupName').val()
+        };
+
+        $.ajax({
+            url: '/groups/add',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                alert('Klaida pridedant grupę: ' + xhr.responseText);
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
