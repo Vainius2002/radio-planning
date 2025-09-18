@@ -9,11 +9,11 @@
         <div class="header-content">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                        <i class="bi bi-calendar-plus text-blue-500"></i>
+                    <h1 class="text-3xl font-bold mb-2" style="color: white;">
+                        <i class="bi bi-calendar-plus text-orange-300"></i>
                         Naujas radijo planas
                     </h1>
-                    <p class="text-gray-600">Sukurkite naują radijo kampanijos planą</p>
+                    <p class="opacity-90" style="color: white;">Sukurkite naują radijo kampanijos planą</p>
                 </div>
                 <a href="{{ url_for('main.planning') }}" class="btn-professional btn-secondary">
                     <i class="bi bi-arrow-left"></i>
@@ -436,7 +436,8 @@ $(document).ready(function() {
 
 /* Dashboard Header */
 .dashboard-header {
-    background: var(--background-white);
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -482,8 +483,8 @@ $(document).ready(function() {
 }
 
 .btn-professional.btn-danger {
-    background: var(--danger-color);
-    color: white;
+    background: transparent;
+    color: var(--danger-color);
     border-color: var(--danger-color);
 }
 

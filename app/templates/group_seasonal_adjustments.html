@@ -9,11 +9,11 @@
         <div class="header-content">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                        <i class="bi bi-calendar3-week text-orange-500"></i>
+                    <h1 class="text-3xl font-bold mb-2" style="color: white;">
+                        <i class="bi bi-calendar3-week text-orange-300"></i>
                         Sezoniniai antkainiai
                     </h1>
-                    <p class="text-gray-600">Grupė: <strong>{{ group.name }}</strong></p>
+                    <p class="opacity-90" style="color: white;">Grupė: <strong>{{ group.name }}</strong></p>
                 </div>
                 <a href="{{ url_for('main.stations') }}" class="btn-professional btn-secondary">
                     <i class="bi bi-arrow-left"></i>
@@ -135,7 +135,8 @@
 
 /* Dashboard Header */
 .dashboard-header {
-    background: var(--background-white);
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -230,18 +231,19 @@
 .section-header {
     padding: 1.5rem 2rem;
     border-bottom: 1px solid var(--border-light);
-    background: var(--background-light);
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
 }
 
 .section-title h3 {
     font-size: 1.125rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: white;
     margin: 0 0 0.25rem 0;
 }
 
 .section-subtitle {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.9);
     font-size: 0.875rem;
 }
 

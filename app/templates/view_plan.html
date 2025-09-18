@@ -9,8 +9,8 @@
         <div class="header-card">
             <div class="header-top">
                 <div class="campaign-title">
-                    <h1>{{ plan.campaign_name }}</h1>
-                    <span class="campaign-subtitle">Radijo kampanijos planavimas</span>
+                    <h1 style="color: white;">{{ plan.campaign_name }}</h1>
+                    <span class="campaign-subtitle" style="color: rgba(255, 255, 255, 0.9);">Radijo kampanijos planavimas</span>
                 </div>
                 <div class="header-actions">
                     <button href="/api/plans/{{ plan.id }}/export" class="btn-professional btn-primary">
@@ -81,8 +81,9 @@
                         <span class="info-label">Klipų informacija</span>
                     </div>
                     <div class="info-value">
-                        {% if plan.clips %}
-                            {% for clip in plan.clips %}
+                        {% set clips_list = plan.clips.all() %}
+                        {% if clips_list %}
+                            {% for clip in clips_list %}
                                 {{ clip.name }} ({{ clip.duration }}s){% if not loop.last %}, {% endif %}
                             {% endfor %}
                         {% else %}
@@ -245,7 +246,7 @@
                                 <td>I-V</td>
                                 <td>0</td>
                                 <td class="spot-count">0</td>
-                                <td class="clip-duration">{% if plan.clips %}{{ plan.clips[0].duration }}{% else %}30{% endif %}</td>
+                                <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
                                 <td class="trp">0</td>
                                 <td class="total-grp">0</td>
@@ -281,7 +282,7 @@
                                 <td>VI-VII</td>
                                 <td>0</td>
                                 <td class="spot-count">0</td>
-                                <td class="clip-duration">{% if plan.clips %}{{ plan.clips[0].duration }}{% else %}30{% endif %}</td>
+                                <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
                                 <td class="trp">0</td>
                                 <td class="total-grp">0</td>
@@ -1000,7 +1001,8 @@ function initializeDragToScroll() {
 }
 
 .header-card {
-    background: var(--background-white);
+    background: linear-gradient(135deg, #2d3748, #4a5568);
+    color: white;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -1049,8 +1051,8 @@ function initializeDragToScroll() {
 }
 
 .info-item {
-    background: var(--background-light);
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
     padding: 1rem;
     transition: all 0.2s ease;
@@ -1073,12 +1075,12 @@ function initializeDragToScroll() {
 }
 
 .info-icon {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 1rem;
 }
 
 .info-label {
-    color: var(--text-secondary);
+    color: #ffffff;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1086,10 +1088,17 @@ function initializeDragToScroll() {
 }
 
 .info-value {
-    color: var(--text-primary);
+    color: #ffffff;
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1.4;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.25rem;
+    display: inline-block;
+    min-width: 100px;
 }
 
 /* Professional Buttons */

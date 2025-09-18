@@ -71,7 +71,6 @@
                 <table class="professional-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Kampanija</th>
                             <th>Projektas</th>
                             <th>Klientas</th>
@@ -89,7 +88,6 @@
                             data-start-date="{{ plan.start_date.strftime('%Y-%m-%d') }}"
                             data-end-date="{{ plan.end_date.strftime('%Y-%m-%d') }}"
                             data-created="{{ plan.created_at.strftime('%Y-%m-%d') }}">
-                            <td class="font-medium text-gray-900">#{{ plan.id }}</td>
                             <td>{{ plan.campaign_name or 'N/A' }}</td>
                             <td>{{ plan.project_name or 'N/A' }}</td>
                             <td>{{ plan.client_brand_name or 'N/A' }}</td>

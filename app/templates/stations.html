@@ -31,16 +31,16 @@
                     <span class="group-count">{{ group.stations.count() }} stotys</span>
                 </div>
                 <div class="group-actions">
-                    <button class="btn-professional btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#stationModal" data-group-id="{{ group.id }}">
-                        <i class="bi bi-plus-circle"></i>
-                        <span>Pridėti stotį</span>
-                    </button>
                     <a href="{{ url_for('main.group_seasonal_adjustments', group_id=group.id) }}"
                        class="btn-professional btn-warning btn-sm"
                        title="Sez. antkainiai">
                         <i class="bi bi-calendar3-week"></i>
                         <span>Sez. antkainiai</span>
                     </a>
+                    <button class="btn-professional btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#stationModal" data-group-id="{{ group.id }}">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Pridėti stotį</span>
+                    </button>
                 </div>
             </div>
 
@@ -212,26 +212,26 @@
 }
 
 .btn-professional.btn-success {
-    background: var(--success-color);
-    color: white;
+    background: transparent;
+    color: var(--success-color);
     border-color: var(--success-color);
 }
 
 .btn-professional.btn-info {
-    background: var(--info-color);
-    color: white;
+    background: transparent;
+    color: var(--info-color);
     border-color: var(--info-color);
 }
 
 .btn-professional.btn-warning {
-    background: var(--warning-color);
-    color: white;
+    background: transparent;
+    color: var(--warning-color);
     border-color: var(--warning-color);
 }
 
 .btn-professional.btn-danger {
-    background: var(--danger-color);
-    color: white;
+    background: transparent;
+    color: var(--danger-color);
     border-color: var(--danger-color);
 }
 
@@ -245,7 +245,7 @@
 .groups-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    gap: 2rem;
+    gap: 3rem;
 }
 
 .group-card {
