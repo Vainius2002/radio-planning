@@ -63,11 +63,25 @@
                             <td class="text-center price-cell">
                                 {% set price_key = zone.zone_letter + '_' + duration %}
                                 {% set zone_price = zone_prices.get(price_key, 0) %}
-                                <span class="price-value">
-                                    {{ "%.2f"|format(zone_price) }}€
+                                <span class="price-display" data-zone="{{ zone.zone_letter }}" data-duration="{{ duration }}">
+                                    <span class="price-value">{{ "%.2f"|format(zone_price) }}€</span>
+                                    <input type="number" class="price-input form-control-sm"
+                                           value="{{ zone_price }}" step="0.01" min="0" style="display: none;">
                                 </span>
-                                <button class="btn-professional btn-primary btn-sm" disabled title="Redaguoti">
+                                <button class="btn-professional btn-primary btn-sm edit-price-btn"
+                                        data-zone="{{ zone.zone_letter }}" data-duration="{{ duration }}"
+                                        title="Redaguoti">
                                     <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn-professional btn-success btn-sm save-price-btn"
+                                        data-zone="{{ zone.zone_letter }}" data-duration="{{ duration }}"
+                                        title="Išsaugoti" style="display: none;">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                                <button class="btn-professional btn-secondary btn-sm cancel-price-btn"
+                                        data-zone="{{ zone.zone_letter }}" data-duration="{{ duration }}"
+                                        title="Atšaukti" style="display: none;">
+                                    <i class="bi bi-x"></i>
                                 </button>
                             </td>
                             {% endfor %}
@@ -268,6 +282,22 @@
     font-weight: 600;
 }
 
+.price-input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    text-align: center;
+    margin-right: 0.5rem;
+}
+
+.price-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgb(37 99 235 / 0.2);
+}
+
 /* Info Section */
 .info-section {
     border-top: 1px solid var(--border-light);
@@ -358,4 +388,119 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Edit price button click
+    $('.edit-price-btn').click(function() {
+        const zone = $(this).data('zone');
+        const duration = $(this).data('duration');
+        const cell = $(this).closest('.price-cell');
+        const display = cell.find('.price-display');
+        const priceValue = display.find('.price-value');
+        const priceInput = display.find('.price-input');
+
+        // Hide display elements and show input
+        priceValue.hide();
+        priceInput.show().focus();
+
+        // Hide edit button, show save/cancel
+        $(this).hide();
+        cell.find('.save-price-btn').show();
+        cell.find('.cancel-price-btn').show();
+    });
+
+    // Cancel edit
+    $('.cancel-price-btn').click(function() {
+        const cell = $(this).closest('.price-cell');
+        cancelEdit(cell);
+    });
+
+    // Save price
+    $('.save-price-btn').click(function() {
+        const zone = $(this).data('zone');
+        const duration = $(this).data('duration');
+        const cell = $(this).closest('.price-cell');
+        const priceInput = cell.find('.price-input');
+        const newPrice = parseFloat(priceInput.val());
+
+        if (isNaN(newPrice) || newPrice < 0) {
+            alert('Įveskite teisingą kainą');
+            return;
+        }
+
+        // Save to backend
+        savePriceToBackend({{ station.id }}, zone, duration, newPrice, cell);
+    });
+
+    // Enter key to save
+    $(document).on('keypress', '.price-input', function(e) {
+        if (e.which === 13) { // Enter key
+            $(this).closest('.price-cell').find('.save-price-btn').click();
+        }
+        if (e.which === 27) { // Escape key
+            cancelEdit($(this).closest('.price-cell'));
+        }
+    });
+
+    function cancelEdit(cell) {
+        const display = cell.find('.price-display');
+        const priceValue = display.find('.price-value');
+        const priceInput = display.find('.price-input');
+
+        // Reset input to original value
+        const originalPrice = priceValue.text().replace('€', '');
+        priceInput.val(parseFloat(originalPrice));
+
+        // Show display, hide input
+        priceValue.show();
+        priceInput.hide();
+
+        // Show edit button, hide save/cancel
+        cell.find('.edit-price-btn').show();
+        cell.find('.save-price-btn').hide();
+        cell.find('.cancel-price-btn').hide();
+    }
+
+    function savePriceToBackend(stationId, zone, duration, price, cell) {
+        const button = cell.find('.save-price-btn');
+        const originalHtml = button.html();
+
+        button.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i>');
+
+        $.ajax({
+            url: `/api/stations/${stationId}/prices`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                zone: zone,
+                duration: duration,
+                price: price
+            }),
+            success: function() {
+                // Update display
+                const display = cell.find('.price-display');
+                const priceValue = display.find('.price-value');
+                priceValue.text(price.toFixed(2) + '€');
+
+                // Reset UI
+                priceValue.show();
+                display.find('.price-input').hide();
+                cell.find('.edit-price-btn').show();
+                cell.find('.save-price-btn').hide();
+                cell.find('.cancel-price-btn').hide();
+
+                // Show success feedback
+                button.html('<i class="bi bi-check text-success"></i>');
+                setTimeout(() => {
+                    button.prop('disabled', false).html(originalHtml);
+                }, 1500);
+            },
+            error: function() {
+                alert('Nepavyko išsaugoti kainos');
+                button.prop('disabled', false).html(originalHtml);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

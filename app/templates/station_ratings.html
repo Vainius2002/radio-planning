@@ -51,23 +51,34 @@
                             {% set weekday_rating = ratings|selectattr('time_slot', 'equalto', time_slot)|selectattr('is_weekend', 'equalto', False)|first %}
                             <tr>
                                 <td><strong>{{ time_slot }}</strong></td>
-                                <td class="text-center">
-                                    {% if weekday_rating %}
-                                        {{ "%.2f"|format(weekday_rating.grp) }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
+                                <td class="text-center rating-cell">
+                                    <span class="rating-display" data-type="grp" data-time-slot="{{ time_slot }}" data-weekend="false">
+                                        {% if weekday_rating %}
+                                            <span class="rating-value">{{ "%.2f"|format(weekday_rating.grp) }}</span>
+                                        {% else %}
+                                            <span class="rating-value text-muted">-</span>
+                                        {% endif %}
+                                        <input type="number" class="rating-input form-control-sm"
+                                               value="{% if weekday_rating %}{{ weekday_rating.grp }}{% else %}0{% endif %}"
+                                               step="0.01" min="0" style="display: none;">
+                                    </span>
+                                </td>
+                                <td class="text-center rating-cell">
+                                    <span class="rating-display" data-type="trp" data-time-slot="{{ time_slot }}" data-weekend="false">
+                                        {% if weekday_rating %}
+                                            <span class="rating-value">{{ "%.2f"|format(weekday_rating.trp) }}</span>
+                                        {% else %}
+                                            <span class="rating-value text-muted">-</span>
+                                        {% endif %}
+                                        <input type="number" class="rating-input form-control-sm"
+                                               value="{% if weekday_rating %}{{ weekday_rating.trp }}{% else %}0{% endif %}"
+                                               step="0.01" min="0" style="display: none;">
+                                    </span>
                                 </td>
                                 <td class="text-center">
-                                    {% if weekday_rating %}
-                                        {{ "%.2f"|format(weekday_rating.trp) }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    <button class="btn-professional btn-primary btn-sm" disabled
->
+                                    <button class="btn-professional btn-primary btn-sm edit-rating-btn"
+                                            data-time-slot="{{ time_slot }}" data-weekend="false"
+                                            title="Redaguoti">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                 </td>
@@ -107,23 +118,34 @@
                             {% set weekend_rating = ratings|selectattr('time_slot', 'equalto', time_slot)|selectattr('is_weekend', 'equalto', True)|first %}
                             <tr>
                                 <td><strong>{{ time_slot }}</strong></td>
-                                <td class="text-center">
-                                    {% if weekend_rating %}
-                                        {{ "%.2f"|format(weekend_rating.grp) }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
+                                <td class="text-center rating-cell">
+                                    <span class="rating-display" data-type="grp" data-time-slot="{{ time_slot }}" data-weekend="true">
+                                        {% if weekend_rating %}
+                                            <span class="rating-value">{{ "%.2f"|format(weekend_rating.grp) }}</span>
+                                        {% else %}
+                                            <span class="rating-value text-muted">-</span>
+                                        {% endif %}
+                                        <input type="number" class="rating-input form-control-sm"
+                                               value="{% if weekend_rating %}{{ weekend_rating.grp }}{% else %}0{% endif %}"
+                                               step="0.01" min="0" style="display: none;">
+                                    </span>
+                                </td>
+                                <td class="text-center rating-cell">
+                                    <span class="rating-display" data-type="trp" data-time-slot="{{ time_slot }}" data-weekend="true">
+                                        {% if weekend_rating %}
+                                            <span class="rating-value">{{ "%.2f"|format(weekend_rating.trp) }}</span>
+                                        {% else %}
+                                            <span class="rating-value text-muted">-</span>
+                                        {% endif %}
+                                        <input type="number" class="rating-input form-control-sm"
+                                               value="{% if weekend_rating %}{{ weekend_rating.trp }}{% else %}0{% endif %}"
+                                               step="0.01" min="0" style="display: none;">
+                                    </span>
                                 </td>
                                 <td class="text-center">
-                                    {% if weekend_rating %}
-                                        {{ "%.2f"|format(weekend_rating.trp) }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    <button class="btn-professional btn-success btn-sm" disabled
->
+                                    <button class="btn-professional btn-success btn-sm edit-rating-btn"
+                                            data-time-slot="{{ time_slot }}" data-weekend="true"
+                                            title="Redaguoti">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                 </td>
@@ -320,6 +342,31 @@
     color: var(--text-muted) !important;
 }
 
+/* Rating editing styles */
+.rating-input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.rating-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgb(37 99 235 / 0.2);
+}
+
+.rating-cell {
+    position: relative;
+}
+
+.rating-display {
+    display: inline-block;
+    min-width: 60px;
+}
+
 /* Responsive table */
 .table-responsive {
     overflow-x: auto;
@@ -342,4 +389,154 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+$(document).ready(function() {
+    let currentEditingRow = null;
+
+    // Edit button click handler
+    $('.edit-rating-btn').click(function(e) {
+        e.preventDefault();
+
+        // If already editing another row, cancel it first
+        if (currentEditingRow && currentEditingRow[0] !== $(this).closest('tr')[0]) {
+            cancelEdit(currentEditingRow);
+        }
+
+        const row = $(this).closest('tr');
+        currentEditingRow = row;
+        enterEditMode(row);
+    });
+
+    function enterEditMode(row) {
+        // Hide all rating values and show inputs in this row
+        row.find('.rating-value').hide();
+        row.find('.rating-input').show().first().focus();
+
+        // Change edit button to save/cancel buttons
+        const editBtn = row.find('.edit-rating-btn');
+        editBtn.hide();
+
+        // Add save and cancel buttons if they don't exist
+        if (row.find('.save-btn').length === 0) {
+            const saveBtn = $('<button class="btn-professional btn-success btn-sm save-btn ms-1" title="Išsaugoti"><i class="bi bi-check"></i></button>');
+            const cancelBtn = $('<button class="btn-professional btn-secondary btn-sm cancel-btn ms-1" title="Atšaukti"><i class="bi bi-x"></i></button>');
+
+            editBtn.after(saveBtn).after(cancelBtn);
+        } else {
+            row.find('.save-btn, .cancel-btn').show();
+        }
+    }
+
+    function cancelEdit(row) {
+        // Reset inputs to original values and hide them
+        row.find('.rating-input').each(function() {
+            const display = $(this).closest('.rating-display');
+            const originalValue = display.find('.rating-value').text().replace('-', '0');
+            $(this).val(parseFloat(originalValue) || 0);
+            $(this).hide();
+        });
+
+        // Show rating values
+        row.find('.rating-value').show();
+
+        // Show edit button, hide save/cancel
+        row.find('.edit-rating-btn').show();
+        row.find('.save-btn, .cancel-btn').hide();
+
+        currentEditingRow = null;
+    }
+
+    function saveEdit(row) {
+        const timeSlot = row.find('.edit-rating-btn').data('time-slot');
+        const isWeekend = row.find('.edit-rating-btn').data('weekend');
+
+        const grpInput = row.find('.rating-display[data-type="grp"] .rating-input');
+        const trpInput = row.find('.rating-display[data-type="trp"] .rating-input');
+
+        const grpValue = parseFloat(grpInput.val()) || 0;
+        const trpValue = parseFloat(trpInput.val()) || 0;
+
+        // Validate inputs
+        if (grpValue < 0 || trpValue < 0) {
+            alert('Reitingai negali būti neigiami');
+            return;
+        }
+
+        // Show loading state
+        const saveBtn = row.find('.save-btn');
+        const originalHtml = saveBtn.html();
+        saveBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i>');
+
+        // Save to backend
+        $.ajax({
+            url: `/api/stations/{{ station.id }}/ratings`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                time_slot: timeSlot,
+                is_weekend: isWeekend,
+                grp: grpValue,
+                trp: trpValue
+            }),
+            success: function(response) {
+                // Update displays
+                const grpDisplay = row.find('.rating-display[data-type="grp"] .rating-value');
+                const trpDisplay = row.find('.rating-display[data-type="trp"] .rating-value');
+
+                grpDisplay.text(grpValue.toFixed(2)).removeClass('text-muted');
+                trpDisplay.text(trpValue.toFixed(2)).removeClass('text-muted');
+
+                // Exit edit mode
+                cancelEdit(row);
+
+                // Show success feedback
+                saveBtn.html('<i class="bi bi-check text-success"></i>');
+                setTimeout(() => {
+                    saveBtn.prop('disabled', false).html(originalHtml);
+                }, 1500);
+            },
+            error: function(xhr) {
+                alert('Nepavyko išsaugoti reitingų: ' + (xhr.responseJSON?.error || 'Nežinoma klaida'));
+                saveBtn.prop('disabled', false).html(originalHtml);
+            }
+        });
+    }
+
+    // Save button click
+    $(document).on('click', '.save-btn', function(e) {
+        e.preventDefault();
+        const row = $(this).closest('tr');
+        saveEdit(row);
+    });
+
+    // Cancel button click
+    $(document).on('click', '.cancel-btn', function(e) {
+        e.preventDefault();
+        const row = $(this).closest('tr');
+        cancelEdit(row);
+    });
+
+    // Enter key to save, Escape to cancel
+    $(document).on('keypress', '.rating-input', function(e) {
+        if (e.which === 13) { // Enter
+            const row = $(this).closest('tr');
+            saveEdit(row);
+        }
+    });
+
+    $(document).on('keyup', '.rating-input', function(e) {
+        if (e.which === 27) { // Escape
+            const row = $(this).closest('tr');
+            cancelEdit(row);
+        }
+    });
+
+    // Click outside to cancel edit
+    $(document).click(function(e) {
+        if (currentEditingRow && !$(e.target).closest('.rating-cell, .edit-rating-btn, .save-btn, .cancel-btn').length) {
+            cancelEdit(currentEditingRow);
+        }
+    });
+});
+</script>
 {% endblock %}

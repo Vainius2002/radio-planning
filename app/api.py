@@ -400,3 +400,62 @@ def get_station_price_for_duration(station_id):
         })
 
     return jsonify({'price': 0, 'duration': duration, 'source': 'not_found'})
+
+
+@api_bp.route('/stations/<int:station_id>/ratings', methods=['PUT'])
+def update_station_rating(station_id):
+    """Update station rating (GRP/TRP) for specific time slot"""
+    try:
+        station = RadioStation.query.get_or_404(station_id)
+        data = request.json
+
+        time_slot = data.get('time_slot')
+        is_weekend = data.get('is_weekend', False)
+        grp = float(data.get('grp', 0))
+        trp = float(data.get('trp', 0))
+
+        if not time_slot:
+            return jsonify({'error': 'Time slot is required'}), 400
+
+        # Find existing rating or create new one
+        rating = StationRating.query.filter_by(
+            station_id=station_id,
+            time_slot=time_slot,
+            is_weekend=is_weekend
+        ).first()
+
+        if rating:
+            # Update existing rating
+            rating.grp = grp
+            rating.trp = trp
+            rating.is_active = True
+        else:
+            # Create new rating
+            rating = StationRating(
+                station_id=station_id,
+                time_slot=time_slot,
+                grp=grp,
+                trp=trp,
+                is_weekend=is_weekend,
+                is_active=True
+            )
+            db.session.add(rating)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'rating': {
+                'id': rating.id,
+                'time_slot': rating.time_slot,
+                'grp': rating.grp,
+                'trp': rating.trp,
+                'is_weekend': rating.is_weekend
+            }
+        })
+
+    except ValueError as e:
+        return jsonify({'error': 'Invalid number format'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error updating rating: {str(e)}'}), 500
