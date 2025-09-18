@@ -470,13 +470,6 @@ def group_seasonal_adjustments(group_id):
 
     return render_template('group_seasonal_adjustments.html', group=group, indices=indices)
 
-@main_bp.route('/settings')
-def settings():
-    """Settings page"""
-    from app.models import SeasonalIndex
-    indices = SeasonalIndex.query.order_by('month').all()
-
-    return render_template('settings.html', indices=indices)
 
 @main_bp.route('/debug/data')
 def debug_data():
