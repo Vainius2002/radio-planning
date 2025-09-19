@@ -268,3 +268,103 @@ def export_plan_to_excel(plan):
     output.seek(0)
 
     return output
+
+def capture_station_data_for_plan(plan):
+    """Capture current station ratings and prices when plan is created"""
+    from app.models import PlanStationData, StationRating, StationZonePrice, SeasonalIndex
+
+    print(f"Capturing station data for plan {plan.id}")
+
+    # Get all time slots
+    time_slots = generate_time_slots()
+
+    # For each selected station, capture data for all time slots
+    for station in plan.selected_stations:
+        print(f"Capturing data for station {station.name} (ID: {station.id})")
+
+        # Get seasonal index for this station's group
+        seasonal_index = 1.0
+        seasonal = SeasonalIndex.query.filter_by(
+            group_id=station.group_id,
+            is_active=True
+        ).first()
+        if not seasonal:
+            # Fall back to global seasonal index
+            seasonal = SeasonalIndex.query.filter_by(
+                group_id=None,
+                is_active=True
+            ).first()
+        if seasonal:
+            seasonal_index = seasonal.index_value
+
+        # Capture data for weekday and weekend versions of each time slot
+        for time_slot in time_slots:
+            for is_weekend in [False, True]:
+                # Get current ratings
+                rating = StationRating.query.filter_by(
+                    station_id=station.id,
+                    time_slot=time_slot,
+                    target_audience=plan.target_audience,
+                    is_weekend=is_weekend,
+                    is_active=True
+                ).first()
+
+                # Get current price (try zone pricing first)
+                base_price = 0
+                clip_duration = 30  # Default duration
+                if plan.clips.count() > 0:
+                    clip_duration = plan.clips.first().duration
+
+                # Try zone pricing first
+                zone = get_zone_for_time_slot(time_slot, is_weekend)
+                zone_price = StationZonePrice.query.filter_by(
+                    station_id=station.id,
+                    zone=zone,
+                    is_weekend=is_weekend
+                ).all()
+
+                # Find best matching duration
+                best_zone_price = None
+                for zp in zone_price:
+                    zp_duration = int(zp.duration.replace('s', ''))
+                    if zp_duration >= clip_duration:
+                        if best_zone_price is None or zp_duration < int(best_zone_price.duration.replace('s', '')):
+                            best_zone_price = zp
+
+                if best_zone_price:
+                    base_price = best_zone_price.price
+
+                # Create captured data record
+                captured_data = PlanStationData(
+                    plan_id=plan.id,
+                    station_id=station.id,
+                    time_slot=time_slot,
+                    is_weekend=is_weekend,
+                    grp=rating.grp if rating else 0,
+                    trp=rating.trp if rating else 0,
+                    affinity=rating.affinity if rating else 0,
+                    base_price=base_price,
+                    seasonal_index=seasonal_index
+                )
+
+                db.session.add(captured_data)
+
+    print(f"Captured data for {len(plan.selected_stations)} stations across {len(time_slots)} time slots (weekday + weekend)")
+
+def get_zone_for_time_slot(time_slot, is_weekend):
+    """Map time slot to pricing zone"""
+    start_time = time_slot.split('-')[0]
+    hour = int(start_time.split(':')[0])
+
+    if is_weekend:
+        return 'D'  # All weekend hours are Zone D
+    elif 7 <= hour < 10:
+        return 'A'
+    elif 10 <= hour < 12:
+        return 'B'
+    elif 12 <= hour < 16:
+        return 'C'
+    elif 16 <= hour < 18:
+        return 'B'
+    else:
+        return 'D'  # 18:00-07:00 and other hours

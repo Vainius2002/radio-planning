@@ -240,6 +240,34 @@ class StationZonePrice(db.Model):
     def __repr__(self):
         return f'<StationZonePrice {self.station.name} Zone:{self.zone} Duration:{self.duration}>'
 
+class PlanStationData(db.Model):
+    """Captured station data for a specific plan - ratings, prices, seasonal indices"""
+    __tablename__ = 'plan_station_data'
+
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey('radio_plans.id'), nullable=False)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_stations.id'), nullable=False)
+    time_slot = db.Column(db.String(20), nullable=False)
+    is_weekend = db.Column(db.Boolean, default=False)
+
+    # Captured ratings (from StationRating at plan creation time)
+    grp = db.Column(db.Float, default=0)
+    trp = db.Column(db.Float, default=0)
+    affinity = db.Column(db.Float, default=0)
+
+    # Captured pricing (from StationPrice/StationZonePrice at plan creation time)
+    base_price = db.Column(db.Float, default=0)
+    seasonal_index = db.Column(db.Float, default=1.0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    plan = db.relationship('RadioPlan', backref='captured_station_data')
+    station = db.relationship('RadioStation', backref='plan_data')
+
+    def __repr__(self):
+        return f'<PlanStationData Plan:{self.plan_id} Station:{self.station_id} Slot:{self.time_slot}>'
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 

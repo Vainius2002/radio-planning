@@ -191,8 +191,15 @@ def create_plan():
             db.session.add(clip)
             print(f"Added clip: {clip_data['name']}")
 
+        # Flush to ensure plan has its relationships loaded
+        db.session.flush()
+
+        # Capture current station data for this plan
+        from app.utils import capture_station_data_for_plan
+        capture_station_data_for_plan(plan)
+
         db.session.commit()
-        print(f"Plan {plan.id} committed successfully")
+        print(f"Plan {plan.id} committed successfully with captured station data")
 
         return jsonify({'id': plan.id, 'message': 'Plan created successfully'}), 201
 
@@ -238,6 +245,29 @@ def get_plan(plan_id):
             } for spot in plan.spots
         ]
     }
+
+    return jsonify(result)
+
+@api_bp.route('/plans/<int:plan_id>/captured-data', methods=['GET'])
+def get_plan_captured_data(plan_id):
+    """Get captured station data for a plan"""
+    plan = RadioPlan.query.get_or_404(plan_id)
+
+    captured_data = plan.captured_station_data
+    result = []
+
+    for data in captured_data:
+        result.append({
+            'station_id': data.station_id,
+            'station_name': data.station.name,
+            'time_slot': data.time_slot,
+            'is_weekend': data.is_weekend,
+            'grp': data.grp,
+            'trp': data.trp,
+            'affinity': data.affinity,
+            'base_price': data.base_price,
+            'seasonal_index': data.seasonal_index
+        })
 
     return jsonify(result)
 

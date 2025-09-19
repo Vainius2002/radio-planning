@@ -414,15 +414,15 @@ tr:not(.weekend-row) .weekend-cell {
 // Load data on page load
 document.addEventListener('DOMContentLoaded', function() {
     generateCalendarGrid();
-    loadStationRatings();
-    loadStationPrices();
     loadExistingSpots();
-    initializeDragToScroll();
 
-    // Calculate initial station totals after all data is loaded
+    // After loading existing spots, load captured station data
     setTimeout(() => {
+        loadCapturedStationData();
         updateAllStationTotals();
-    }, 1000);
+    }, 500);
+
+    initializeDragToScroll();
 });
 
 function generateCalendarGrid() {
@@ -495,8 +495,122 @@ function generateCalendarGrid() {
     calendarBody.innerHTML = bodyHtml;
 }
 
+function loadCapturedStationData() {
+    // Load captured station data for this plan
+    console.log('Loading captured station data for plan {{ plan.id }}');
+
+    fetch(`/api/plans/{{ plan.id }}/captured-data`)
+        .then(response => response.json())
+        .then(capturedData => {
+            console.log(`Loaded ${capturedData.length} captured station data records`);
+
+            capturedData.forEach(data => {
+                // Find the corresponding row in the planning table
+                const row = document.querySelector(`tr[data-station-id="${data.station_id}"][data-time-slot="${data.time_slot}"][data-is-weekend="${data.is_weekend}"]`);
+
+                if (row) {
+                    // Populate with captured values from plan creation time
+                    const grpCell = row.querySelector('.grp');
+                    const trpCell = row.querySelector('.trp');
+                    const affinityCell = row.querySelector('.affinity');
+                    const basePriceCell = row.querySelector('.base-price');
+                    const seasonalIndexCell = row.querySelector('.seasonal-index');
+
+                    if (grpCell) grpCell.textContent = data.grp.toFixed(2);
+                    if (trpCell) trpCell.textContent = data.trp.toFixed(2);
+                    if (affinityCell) affinityCell.textContent = data.affinity.toFixed(2);
+                    if (basePriceCell) basePriceCell.textContent = data.base_price.toFixed(2);
+                    if (seasonalIndexCell) seasonalIndexCell.textContent = data.seasonal_index.toFixed(2);
+
+                    console.log(`Applied captured data: Station ${data.station_name}, slot ${data.time_slot}, GRP=${data.grp}, TRP=${data.trp}`);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading captured station data:', error);
+        });
+}
+
+function applyCurrentRatingsForPreview(stationId, ratings) {
+    // Apply current ratings only to empty cells (for preview)
+    const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+
+    stationRows.forEach(row => {
+        const timeSlot = row.dataset.timeSlot;
+        const isWeekend = row.dataset.isWeekend === 'true';
+        if (!timeSlot) return;
+
+        const grpCell = row.querySelector('.grp');
+        const trpCell = row.querySelector('.trp');
+        const affinityCell = row.querySelector('.affinity');
+
+        // Only update if the cell is currently empty/zero
+        if (grpCell && (grpCell.textContent.trim() === '0' || grpCell.textContent.trim() === '')) {
+            const rating = ratings.find(r => r.time_slot === timeSlot && r.is_weekend === isWeekend);
+            if (rating) {
+                grpCell.textContent = rating.grp.toFixed(2);
+                if (trpCell) trpCell.textContent = rating.trp.toFixed(2);
+                if (affinityCell) affinityCell.textContent = rating.affinity.toFixed(2);
+                console.log(`Loaded preview ratings for station ${stationId}, slot ${timeSlot}: GRP=${rating.grp}, TRP=${rating.trp}`);
+            }
+        }
+    });
+}
+
 function loadStationRatings() {
-    // Get all unique station IDs from the table
+    // DISABLED: This function is no longer used
+    // Use loadCurrentRatingsForPreview() for new plans or loadExistingSpots() for existing plans
+    console.log('loadStationRatings() is disabled - use loadCurrentRatingsForPreview() or loadExistingSpots()');
+}
+
+function loadSavedSpotRatings() {
+    // Load saved ratings from RadioSpot database records for this plan
+    fetch(`/api/plans/{{ plan.id }}`)
+        .then(response => response.json())
+        .then(planData => {
+            if (planData.spots && planData.spots.length > 0) {
+                console.log(`Loading saved ratings from ${planData.spots.length} spots`);
+
+                planData.spots.forEach(spot => {
+                    // Find the corresponding row in the table
+                    const row = document.querySelector(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"]`);
+
+                    if (row) {
+                        // Populate with saved values from database
+                        const grpCell = row.querySelector('.grp');
+                        const trpCell = row.querySelector('.trp');
+                        const affinityCell = row.querySelector('.affinity');
+
+                        if (grpCell && spot.grp) {
+                            grpCell.textContent = (spot.grp / spot.spot_count).toFixed(2); // Base GRP (divide by spot count)
+                        }
+                        if (trpCell && spot.trp) {
+                            trpCell.textContent = (spot.trp / spot.spot_count).toFixed(2); // Base TRP (divide by spot count)
+                        }
+                        if (affinityCell && spot.affinity) {
+                            affinityCell.textContent = spot.affinity.toFixed(2);
+                        }
+
+                        console.log(`Loaded saved ratings for station ${spot.station_id}, slot ${spot.time_slot}: GRP=${spot.grp}, TRP=${spot.trp}`);
+                    }
+                });
+
+                // Update all totals after loading values
+                setTimeout(() => {
+                    updateAllStationTotals();
+                }, 100);
+            } else {
+                console.log('No spots found in plan - will only show values when spots are added');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading saved spot ratings:', error);
+            console.log('Will only show values when spots are added');
+        });
+}
+
+function loadCurrentStationRatings() {
+    // For new plans, load current station ratings
     const stationRows = document.querySelectorAll('.planning-row');
     const stationIds = new Set();
 
@@ -507,21 +621,20 @@ function loadStationRatings() {
         }
     });
 
-    // Load ratings for each station
     stationIds.forEach(stationId => {
         fetch(`/api/radio-stations/${stationId}/ratings?target_audience={{ plan.target_audience }}`)
             .then(response => response.json())
             .then(ratings => {
-                applyStationRatings(stationId, ratings);
+                applyCurrentStationRatings(stationId, ratings);
             })
             .catch(error => {
-                console.error(`Error loading ratings for station ${stationId}:`, error);
+                console.error(`Error loading current ratings for station ${stationId}:`, error);
             });
     });
 }
 
-function applyStationRatings(stationId, ratings) {
-    // Find all rows for this station
+function applyCurrentStationRatings(stationId, ratings) {
+    // Apply current ratings to new plans only
     const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
 
     stationRows.forEach(row => {
@@ -529,18 +642,18 @@ function applyStationRatings(stationId, ratings) {
         const isWeekend = row.dataset.isWeekend === 'true';
         if (!timeSlot) return;
 
-        // Find matching rating for this time slot and weekend status
-        const rating = ratings.find(r => r.time_slot === timeSlot && r.is_weekend === isWeekend);
+        const grpCell = row.querySelector('.grp');
+        const trpCell = row.querySelector('.trp');
+        const affinityCell = row.querySelector('.affinity');
 
-        if (rating) {
-            // Update GRP and TRP values
-            const grpCell = row.querySelector('.grp');
-            const trpCell = row.querySelector('.trp');
-            const affinityCell = row.querySelector('.affinity');
-
-            if (grpCell) grpCell.textContent = rating.grp.toFixed(2);
-            if (trpCell) trpCell.textContent = rating.trp.toFixed(2);
-            if (affinityCell) affinityCell.textContent = rating.affinity.toFixed(2);
+        if (grpCell && grpCell.textContent.trim() === '0') {
+            const rating = ratings.find(r => r.time_slot === timeSlot && r.is_weekend === isWeekend);
+            if (rating) {
+                grpCell.textContent = rating.grp.toFixed(2);
+                if (trpCell) trpCell.textContent = rating.trp.toFixed(2);
+                if (affinityCell) affinityCell.textContent = rating.affinity.toFixed(2);
+                console.log(`Loaded current ratings for station ${stationId}, slot ${timeSlot}: GRP=${rating.grp}, TRP=${rating.trp}`);
+            }
         }
     });
 }
@@ -557,21 +670,13 @@ function loadStationPrices() {
         }
     });
 
-    // Load prices for each station
-    stationIds.forEach(stationId => {
-        fetch(`/api/radio-stations/${stationId}/prices`)
-            .then(response => response.json())
-            .then(prices => {
-                applyStationPrices(stationId, prices);
-            })
-            .catch(error => {
-                console.error(`Error loading prices for station ${stationId}:`, error);
-            });
-    });
+    // REMOVED: No longer loading prices automatically - plans keep their saved values
+    // Prices will only be populated when spots are added via the backend
+    console.log('Price loading disabled - only saved RadioSpot values will be used');
 }
 
-function applyStationPrices(stationId, prices) {
-    // Find all rows for this station
+function applyStationPricesOnLoad(stationId, prices) {
+    // Load prices only for empty cells (0 values), never overwrite existing values
     const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
 
     stationRows.forEach(row => {
@@ -579,25 +684,27 @@ function applyStationPrices(stationId, prices) {
         const isWeekend = row.dataset.isWeekend === 'true';
         if (!timeSlot) return;
 
-        // Get clip duration from the row
-        const clipDuration = parseInt(row.querySelector('.clip-duration').textContent || 30);
+        // Only update if the base price cell is empty or 0 (initial load or new plans)
+        const basePriceCell = row.querySelector('.base-price');
+        if (basePriceCell && (basePriceCell.textContent.trim() === '0' || basePriceCell.textContent.trim() === '')) {
+            const clipDuration = parseInt(row.querySelector('.clip-duration').textContent || 30);
 
-        // Use new API endpoint to get exact price for this duration
-        fetch(`/api/radio-stations/${stationId}/price?time_slot=${encodeURIComponent(timeSlot)}&duration=${clipDuration}&is_weekend=${isWeekend}`)
-            .then(response => response.json())
-            .then(priceData => {
-                // Update base price value with exact price from database
-                const basePriceCell = row.querySelector('.base-price');
-                if (basePriceCell && priceData.price) {
-                    basePriceCell.textContent = priceData.price.toFixed(2);
-
-                    // Trigger price calculations
-                    calculateRowPrices(row);
-                }
-            })
-            .catch(error => {
-                console.error(`Error loading price for station ${stationId}, time ${timeSlot}, duration ${clipDuration}:`, error);
-            });
+            // Use new API endpoint to get exact price for this duration
+            fetch(`/api/radio-stations/${stationId}/price?time_slot=${encodeURIComponent(timeSlot)}&duration=${clipDuration}&is_weekend=${isWeekend}`)
+                .then(response => response.json())
+                .then(priceData => {
+                    if (priceData.price) {
+                        basePriceCell.textContent = priceData.price.toFixed(2);
+                        calculateRowPrices(row);
+                        console.log(`Loaded price for station ${stationId}, slot ${timeSlot}: ${priceData.price}`);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error loading price for station ${stationId}, time ${timeSlot}, duration ${clipDuration}:`, error);
+                });
+        } else {
+            console.log(`Skipping station ${stationId}, slot ${timeSlot} - already has price: ${basePriceCell ? basePriceCell.textContent : 'N/A'}`);
+        }
     });
 }
 
@@ -640,6 +747,7 @@ function toggleSpot(cell) {
     const row = cell.closest('tr');
     const stationId = row.dataset.stationId;
     const timeSlot = row.dataset.timeSlot;
+    const isWeekend = row.dataset.isWeekend === 'true';
     const date = cell.dataset.date;
 
     // Toggle spot indicator
@@ -649,6 +757,13 @@ function toggleSpot(cell) {
 
     indicator.textContent = newCount > 0 ? newCount : '';
     cell.classList.toggle('has-spot', newCount > 0);
+
+    // Save or delete spot in backend with current station data
+    if (newCount > 0) {
+        saveSpotWithCurrentData(stationId, timeSlot, date, isWeekend, row);
+    } else {
+        deleteSpotFromBackend(stationId, timeSlot, date);
+    }
 
     // Update totals
     updateRowTotals(row);
@@ -707,30 +822,59 @@ function updateSpotCount(input) {
     }
 }
 
-function saveSpotToBackend(stationId, date, spotCount) {
-    const spotData = {
-        station_id: parseInt(stationId),
-        date: date,
-        time_slot: '06:00-10:00', // Default time slot, you might want to make this configurable
-        spot_count: spotCount
-    };
+function saveSpotWithCurrentData(stationId, timeSlot, date, isWeekend, row) {
+    // Get current ratings from station (live data)
+    fetch(`/api/radio-stations/${stationId}/ratings?target_audience={{ plan.target_audience }}`)
+        .then(response => response.json())
+        .then(ratings => {
+            // Find rating for this time slot and weekend status
+            const rating = ratings.find(r => r.time_slot === timeSlot && r.is_weekend === isWeekend);
 
-    fetch('/api/plans/{{ plan.id }}/spots', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(spotData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            console.error('Error saving spot:', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+            // Get current price from station (live data)
+            const clipDuration = parseInt(row.querySelector('.clip-duration').textContent || 30);
+            return fetch(`/api/radio-stations/${stationId}/price?time_slot=${encodeURIComponent(timeSlot)}&duration=${clipDuration}&is_weekend=${isWeekend}`)
+                .then(priceResponse => priceResponse.json())
+                .then(priceData => {
+                    // Get current seasonal index
+                    const seasonalIndex = parseFloat(row.querySelector('.seasonal-index').textContent || 1.0);
+
+                    // Prepare spot data with current values
+                    const spotData = {
+                        station_id: parseInt(stationId),
+                        date: date,
+                        time_slot: timeSlot,
+                        spot_count: 1,
+                        clip_duration: clipDuration
+                    };
+
+                    // Save to backend - the backend will capture current values and store them
+                    return fetch(`/api/plans/{{ plan.id }}/spots`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(spotData)
+                    });
+                });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error saving spot:', data.error);
+            } else {
+                console.log('Spot saved with current station data captured');
+                // Reload the spot data to show the captured values
+                loadExistingSpots();
+            }
+        })
+        .catch(error => {
+            console.error('Error saving spot:', error);
+        });
+}
+
+function deleteSpotFromBackend(stationId, timeSlot, date) {
+    // TODO: Implement spot deletion API if needed
+    console.log(`Deleting spot: station ${stationId}, slot ${timeSlot}, date ${date}`);
 }
 
 function updateCalendarSpotCounts() {
@@ -828,7 +972,7 @@ function updateAllStationTotals() {
 }
 
 function loadExistingSpots() {
-    // Load existing spots from the plan
+    // Load existing spots from the plan and populate saved ratings/prices
     fetch(`/api/plans/{{ plan.id }}`)
         .then(response => response.json())
         .then(data => {
@@ -836,16 +980,46 @@ function loadExistingSpots() {
                 const stationIds = new Set();
 
                 data.spots.forEach(spot => {
-                    const row = document.querySelector(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"]`);
+                    // Find the row that matches both station and time slot
+                    const isWeekend = new Date(spot.date).getDay() >= 5;
+                    const row = document.querySelector(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${isWeekend}"]`);
+
                     if (row) {
+                        // Mark the calendar cell
                         const cell = row.querySelector(`td[data-date="${spot.date}"]`);
                         if (cell) {
                             const indicator = cell.querySelector('.spot-indicator');
                             indicator.textContent = spot.spot_count;
                             cell.classList.add('has-spot');
                         }
+
+                        // Populate saved ratings and prices from the spot record
+                        const grpCell = row.querySelector('.grp');
+                        const trpCell = row.querySelector('.trp');
+                        const affinityCell = row.querySelector('.affinity');
+                        const basePriceCell = row.querySelector('.base-price');
+                        const finalPriceCell = row.querySelector('.final-price');
+
+                        if (grpCell && spot.grp) {
+                            grpCell.textContent = (spot.grp / spot.spot_count).toFixed(2); // Base GRP per spot
+                        }
+                        if (trpCell && spot.trp) {
+                            trpCell.textContent = (spot.trp / spot.spot_count).toFixed(2); // Base TRP per spot
+                        }
+                        if (affinityCell && spot.affinity) {
+                            affinityCell.textContent = spot.affinity.toFixed(2);
+                        }
+                        if (basePriceCell && spot.base_price) {
+                            basePriceCell.textContent = spot.base_price.toFixed(2);
+                        }
+                        if (finalPriceCell && spot.final_price) {
+                            finalPriceCell.textContent = (spot.final_price / spot.spot_count).toFixed(2); // Price per spot
+                        }
+
                         updateRowTotals(row);
                         stationIds.add(spot.station_id);
+
+                        console.log(`Loaded saved data for station ${spot.station_id}, slot ${spot.time_slot}: GRP=${spot.grp}, TRP=${spot.trp}, Price=${spot.base_price}`);
                     }
                 });
 
