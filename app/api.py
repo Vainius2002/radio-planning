@@ -432,6 +432,117 @@ def get_station_price_for_duration(station_id):
     return jsonify({'price': 0, 'duration': duration, 'source': 'not_found'})
 
 
+@api_bp.route('/stations/<int:station_id>/prices', methods=['PUT'])
+def update_station_zone_price(station_id):
+    """Update station zone price for specific zone and duration"""
+    try:
+        from app.models import StationZonePrice
+        station = RadioStation.query.get_or_404(station_id)
+        data = request.json
+
+        zone = data.get('zone')
+        duration = data.get('duration')
+        price = float(data.get('price', 0))
+        is_weekend = data.get('is_weekend', False)
+
+        if not zone or not duration:
+            return jsonify({'error': 'Zone and duration are required'}), 400
+
+        # Find existing zone price or create new one
+        zone_price = StationZonePrice.query.filter_by(
+            station_id=station_id,
+            zone=zone,
+            duration=duration,
+            is_weekend=is_weekend
+        ).first()
+
+        if zone_price:
+            # Update existing price
+            zone_price.price = price
+        else:
+            # Create new price
+            zone_price = StationZonePrice(
+                station_id=station_id,
+                zone=zone,
+                duration=duration,
+                price=price,
+                is_weekend=is_weekend
+            )
+            db.session.add(zone_price)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'price': {
+                'id': zone_price.id,
+                'zone': zone_price.zone,
+                'duration': zone_price.duration,
+                'price': zone_price.price,
+                'is_weekend': zone_price.is_weekend
+            }
+        })
+
+    except ValueError as e:
+        return jsonify({'error': 'Invalid number format'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error updating zone price: {str(e)}'}), 500
+
+@api_bp.route('/stations/<int:station_id>/time-slot-prices', methods=['PUT'])
+def update_station_time_slot_price(station_id):
+    """Update station price for specific time slot"""
+    try:
+        station = RadioStation.query.get_or_404(station_id)
+        data = request.json
+
+        time_slot = data.get('time_slot')
+        is_weekend = data.get('is_weekend', False)
+        price = float(data.get('price', 0))
+
+        if not time_slot:
+            return jsonify({'error': 'Time slot is required'}), 400
+
+        # Find existing price or create new one
+        station_price = StationPrice.query.filter_by(
+            station_id=station_id,
+            time_slot=time_slot,
+            is_weekend=is_weekend
+        ).first()
+
+        if station_price:
+            # Update existing price
+            station_price.price = price
+            station_price.is_active = True
+        else:
+            # Create new price
+            station_price = StationPrice(
+                station_id=station_id,
+                time_slot=time_slot,
+                price=price,
+                is_weekend=is_weekend,
+                is_active=True
+            )
+            db.session.add(station_price)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'price': {
+                'id': station_price.id,
+                'time_slot': station_price.time_slot,
+                'price': station_price.price,
+                'is_weekend': station_price.is_weekend
+            }
+        })
+
+    except ValueError as e:
+        return jsonify({'error': 'Invalid number format'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error updating price: {str(e)}'}), 500
+
 @api_bp.route('/stations/<int:station_id>/ratings', methods=['PUT'])
 def update_station_rating(station_id):
     """Update station rating (GRP/TRP) for specific time slot"""
