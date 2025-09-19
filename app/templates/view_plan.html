@@ -772,7 +772,7 @@ function updateStationTotals(stationId) {
     let totalAfterDiscount = 0;
 
     stationRows.forEach((row, index) => {
-        // Get the spot count for this row
+        // Get the spot count for this row (klipu skaicius)
         const spotCount = parseInt(row.querySelector('.spot-count')?.textContent) || 0;
 
         // Get the TOTAL GRP and TRP values from the total columns (these are already calculated as spots × rating)
@@ -782,38 +782,25 @@ function updateStationTotals(stationId) {
         // Get the affinity value directly from the cell
         const affinityValue = parseFloat(row.querySelector('.affinity')?.textContent) || 0;
 
-        // Debug: log what values we're reading
-        const totalGrpElement = row.querySelector('.total-grp');
-        const totalTrpElement = row.querySelector('.total-trp');
-        const affinityElement = row.querySelector('.affinity');
-
-        console.log(`Row ${index}: totalGrp=${totalGrpValue}, totalTrp=${totalTrpValue}, affinity=${affinityValue}`);
-        console.log(`Row ${index} elements found:`,
-            totalGrpElement ? 'total-grp: YES' : 'total-grp: NO',
-            totalTrpElement ? 'total-trp: YES' : 'total-trp: NO',
-            affinityElement ? 'affinity: YES' : 'affinity: NO'
-        );
-        if (totalGrpElement) console.log(`Row ${index} total-grp text:`, totalGrpElement.textContent);
-        if (affinityElement) console.log(`Row ${index} affinity text:`, affinityElement.textContent);
-
-        // Sum up the total GRP, total TRP, and Affinity values
-        sumOfGrpValues += totalGrpValue;
-        sumOfTrpValues += totalTrpValue;
-        sumOfAffinityValues += affinityValue;
-
-        // Get price totals
+        // Get price totals (viso kaina iki nuolaidos, viso kaina po nuolaidos)
         const beforeDiscount = parseFloat(row.querySelector('.total-before-discount')?.textContent) || 0;
         const afterDiscount = parseFloat(row.querySelector('.total-after-discount')?.textContent) || 0;
 
-        // Add to totals
+        // Debug: log what values we're reading
+        console.log(`Row ${index}: spots=${spotCount}, totalGrp=${totalGrpValue}, totalTrp=${totalTrpValue}, affinity=${affinityValue}, beforeDiscount=${beforeDiscount}, afterDiscount=${afterDiscount}`);
+
+        // Sum up all the values
         totalSpots += spotCount;
+        sumOfGrpValues += totalGrpValue;
+        sumOfTrpValues += totalTrpValue;
+        sumOfAffinityValues += affinityValue;
         totalBeforeDiscount += beforeDiscount;
         totalAfterDiscount += afterDiscount;
     });
 
     // Update station total cells in the existing VISO row
     // Display the sum of all values
-    console.log(`Station ${stationId} totals: GRP=${sumOfGrpValues}, TRP=${sumOfTrpValues}, Affinity=${sumOfAffinityValues}`);
+    console.log(`Station ${stationId} totals: Spots=${totalSpots}, GRP=${sumOfGrpValues}, TRP=${sumOfTrpValues}, Affinity=${sumOfAffinityValues}, BeforeDiscount=${totalBeforeDiscount}, AfterDiscount=${totalAfterDiscount}`);
 
     document.getElementById(`station-${stationId}-total-spots`).textContent = totalSpots;
     document.getElementById(`station-${stationId}-total-grp`).textContent = sumOfGrpValues.toFixed(2);
