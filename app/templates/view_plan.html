@@ -221,9 +221,9 @@
                             <th class="price-with-index-header">Antkainis<br>padidintas</th>
                             <th class="clip-price-header">Klipo kaina<br>EUR</th>
                             <!-- Totals columns -->
-                            <th class="final-price-header">Kaina po<br>nuolaidos EUR</th>
-                            <th class="total-before-header">Viso kaina<br>iki nuolaidos</th>
-                            <th class="total-after-header">Viso kaina<br>po nuolaidos</th>
+                            <th class="final-price-header">GROSS<br>kaina</th>
+                            <th class="total-before-header">Kaina po mūsų<br>nuolaidos</th>
+                            <th class="total-after-header">Kaina po kliento<br>nuolaidos</th>
                             <th class="our-discount-header">Mūsų nuolaida %</th>
                             <th class="client-discount-header">Kliento nuolaida %</th>
                             <!-- Date headers -->
@@ -885,10 +885,10 @@ function calculateRowPrices(row) {
     row.querySelector('.final-price').textContent = priceWithIndex.toFixed(2); // Single spot final price
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
-    // Calculate TRP price if TRP is available using formula: basePrice / TRP / 100
+    // Calculate TRP price if TRP is available using formula: įkainis / TRP
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
     if (trp > 0) {
-        const trpPrice = basePrice / trp / 100;
+        const trpPrice = basePrice / trp;
         row.querySelector('.trp-price').textContent = trpPrice.toFixed(2);
     }
 }
@@ -1302,10 +1302,10 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     row.querySelector('.final-price').textContent = priceWithIndex.toFixed(2); // Single spot final price
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
-    // Calculate TRP price if TRP is available using formula: basePrice / TRP / 100
+    // Calculate TRP price if TRP is available using formula: įkainis / TRP
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
     if (trp > 0) {
-        const trpPrice = basePrice / trp / 100;
+        const trpPrice = basePrice / trp;
         row.querySelector('.trp-price').textContent = trpPrice.toFixed(2);
     }
 }
