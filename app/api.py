@@ -300,6 +300,193 @@ def add_spot():
 
     return jsonify({'id': spot.id, 'message': 'Spot added successfully'}), 201
 
+@api_bp.route('/plans/<int:plan_id>/spots/update-count', methods=['PUT'])
+def update_spot_count(plan_id):
+    """Update spot count for a time slot"""
+    try:
+        # Add a simple file log to see if we're even reaching this endpoint
+        with open('/tmp/radio_debug.log', 'a') as f:
+            f.write(f"UPDATE_SPOT_COUNT called at {datetime.now()} for plan {plan_id}\n")
+            f.flush()
+
+        plan = RadioPlan.query.get_or_404(plan_id)
+
+        with open('/tmp/radio_debug.log', 'a') as f:
+            f.write(f"Plan loaded: {plan.id}\n")
+            f.flush()
+        data = request.json
+
+        print(f"=== UPDATE SPOT COUNT API CALLED ===")
+        print(f"Plan ID: {plan_id}")
+        print(f"Received data: {data}")
+
+        station_id = data.get('station_id')
+        time_slot = data.get('time_slot')
+        date = data.get('date')
+        new_count = data.get('spot_count', 0)
+
+        print(f"Parsed - Station: {station_id} (type: {type(station_id)}), Time: {time_slot}, Date: {date}, Count: {new_count}")
+
+        if not all([station_id, time_slot, date]):
+            print("ERROR: Missing required fields")
+            print(f"station_id: {station_id}, time_slot: {time_slot}, date: {date}")
+            return jsonify({'error': f'Missing required fields - station_id: {station_id}, time_slot: {time_slot}, date: {date}'}), 400
+
+        # Ensure station_id is an integer
+        try:
+            station_id = int(station_id)
+            new_count = int(new_count)
+        except (ValueError, TypeError) as e:
+            print(f"ERROR: Invalid data types - station_id: {station_id}, new_count: {new_count}")
+            return jsonify({'error': f'Invalid data types: {str(e)}'}), 400
+
+        # Check if station exists
+        from app.models import RadioStation
+        station = RadioStation.query.get(station_id)
+        if not station:
+            print(f"ERROR: Station {station_id} not found")
+            return jsonify({'error': f'Station {station_id} not found'}), 404
+
+        print(f"Found station: {station.id} - {station.name}")
+
+        # Parse date
+        print(f"Parsing date: {date}")
+        spot_date = datetime.strptime(date, '%Y-%m-%d').date()
+        print(f"Parsed spot_date: {spot_date}")
+
+        # Find existing spot or create new one
+        print(f"Looking for existing spot...")
+        spot = RadioSpot.query.filter_by(
+            plan_id=plan_id,
+            station_id=station_id,
+            time_slot=time_slot,
+            date=spot_date
+        ).first()
+        print(f"Found existing spot: {spot}")
+
+        if new_count <= 0:
+            print(f"Removing spot (count = {new_count})")
+            # Remove spot if count is 0 or negative
+            if spot:
+                db.session.delete(spot)
+                db.session.commit()
+            return jsonify({'success': True, 'spot_count': 0}), 200
+
+        if spot:
+            print(f"Updating existing spot")
+            # Update existing spot
+            spot.spot_count = new_count
+        else:
+            print(f"Creating new spot")
+            # Create new spot
+            clip_duration = 30
+
+            with open('/tmp/radio_debug.log', 'a') as f:
+                f.write(f"About to check clips, plan.clips: {plan.clips}\n")
+                f.flush()
+
+            if plan.clips and plan.clips.count() > 0:
+                first_clip = plan.clips.first()
+
+                with open('/tmp/radio_debug.log', 'a') as f:
+                    f.write(f"First clip: {first_clip}\n")
+                    if first_clip:
+                        f.write(f"First clip name: {first_clip.name if hasattr(first_clip, 'name') else 'NO NAME ATTR'}\n")
+                    f.flush()
+
+                if first_clip and first_clip.duration:
+                    clip_duration = first_clip.duration
+                else:
+                    print(f"WARNING: First clip has no duration, using default 30s")
+
+            spot = RadioSpot(
+                plan_id=plan_id,
+                station_id=station_id,
+                date=spot_date,
+                time_slot=time_slot,
+                spot_count=new_count,
+                clip_duration=clip_duration,
+                weekday=spot_date.strftime('%A')
+            )
+
+            with open('/tmp/radio_debug.log', 'a') as f:
+                f.write(f"Created spot with station_id: {station_id}, spot.station: {spot.station}\n")
+                f.write(f"Station lookup result: {RadioStation.query.get(station_id)}\n")
+                f.flush()
+
+            # Calculate metrics based on captured plan data
+            from app.models import PlanStationData
+
+            is_weekend = spot_date.weekday() >= 5
+            captured_data = PlanStationData.query.filter_by(
+                plan_id=plan_id,
+                station_id=station_id,
+                time_slot=time_slot,
+                is_weekend=is_weekend
+            ).first()
+
+            if captured_data:
+                spot.grp = captured_data.grp * new_count
+                spot.trp = captured_data.trp * new_count
+                spot.affinity = captured_data.affinity
+                spot.base_price = captured_data.base_price
+                spot.seasonal_index = captured_data.seasonal_index
+
+                # Calculate final pricing
+                price_with_index = spot.base_price * spot.seasonal_index
+                price_after_our = price_with_index * (1 - plan.our_discount / 100)
+                spot.final_price = price_after_our * (1 - plan.client_discount / 100)
+
+                if spot.trp > 0:
+                    spot.price_per_trp = spot.base_price / spot.trp * 100
+            else:
+                # No captured data available - set default values
+                spot.grp = 0
+                spot.trp = 0
+                spot.affinity = 0
+                spot.base_price = 0
+                spot.seasonal_index = 1.0
+                spot.final_price = 0
+                spot.price_per_trp = 0
+
+            print(f"Adding spot to session: {spot}")
+            db.session.add(spot)
+
+        print(f"Committing to database...")
+        db.session.commit()
+        print(f"Commit successful!")
+
+        # Ensure spot and its relationships are properly loaded
+        db.session.refresh(spot)
+
+        # Validate the spot has a valid station relationship
+        if not spot.station:
+            print(f"ERROR: Spot {spot.id} has no station relationship (station_id: {spot.station_id})")
+            return jsonify({'error': f'Spot has invalid station reference (station_id: {spot.station_id})'}), 500
+
+        return jsonify({
+            'success': True,
+            'spot_count': spot.spot_count,
+            'grp': spot.grp,
+            'trp': spot.trp,
+            'final_price': spot.final_price
+        }), 200
+
+    except Exception as e:
+        print(f"ERROR in update_spot_count: {str(e)}")
+        print(f"Exception type: {type(e)}")
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(f"Traceback: {traceback_str}")
+
+        with open('/tmp/radio_debug.log', 'a') as f:
+            f.write(f"ERROR: {str(e)}\n")
+            f.write(f"Full traceback:\n{traceback_str}\n")
+            f.flush()
+
+        db.session.rollback()
+        return jsonify({'error': f'Error updating spot count: {str(e)}'}), 500
+
 @api_bp.route('/plans/<int:plan_id>/export', methods=['GET'])
 def export_plan(plan_id):
     """Export plan to Excel"""

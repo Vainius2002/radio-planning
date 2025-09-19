@@ -245,7 +245,13 @@
                                 <td>{{ time_slot }}</td>
                                 <td>I-V</td>
                                 <td>0</td>
-                                <td class="spot-count">0</td>
+                                <td class="spot-count">
+                                    <div class="spot-count-controls">
+                                        <button class="btn-spot-control btn-minus" data-action="minus" title="Sumažinti">-</button>
+                                        <span class="spot-number">0</span>
+                                        <button class="btn-spot-control btn-plus" data-action="plus" title="Padidinti">+</button>
+                                    </div>
+                                </td>
                                 <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
                                 <td class="trp">0</td>
@@ -281,7 +287,13 @@
                                 <td>{{ time_slot }}</td>
                                 <td>VI-VII</td>
                                 <td>0</td>
-                                <td class="spot-count">0</td>
+                                <td class="spot-count">
+                                    <div class="spot-count-controls">
+                                        <button class="btn-spot-control btn-minus" data-action="minus" title="Sumažinti">-</button>
+                                        <span class="spot-number">0</span>
+                                        <button class="btn-spot-control btn-plus" data-action="plus" title="Padidinti">+</button>
+                                    </div>
+                                </td>
                                 <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
                                 <td class="trp">0</td>
@@ -406,24 +418,162 @@ tr:not(.weekend-row) .weekend-cell {
     cursor: not-allowed;
     opacity: 0.5;
 }
+
+/* Spot count controls */
+.spot-count-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+}
+
+.btn-spot-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-spot-control:hover {
+    background: #f0f0f0;
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.btn-spot-control:active {
+    background: #007bff;
+    color: white;
+    transform: scale(0.95);
+}
+
+.btn-spot-control:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-minus:hover {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.btn-plus:hover {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.spot-number {
+    min-width: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+}
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Load data on page load
-document.addEventListener('DOMContentLoaded', function() {
-    generateCalendarGrid();
-    loadExistingSpots();
+// Load data on page load - Multiple approaches for reliability
+function initializePage() {
+    console.log('=== INITIALIZING PAGE ===');
 
-    // After loading existing spots, load captured station data
-    setTimeout(() => {
-        loadCapturedStationData();
-        updateAllStationTotals();
-    }, 500);
+    try {
+        // Only generate calendar grid if the calendar body is empty (no server-generated content)
+        const calendarBody = document.getElementById('calendar-body');
+        if (calendarBody && calendarBody.children.length === 0) {
+            console.log('Calendar body is empty, generating calendar grid');
+            generateCalendarGrid();
+        } else {
+            console.log('Calendar body has content, skipping generateCalendarGrid()');
+        }
 
-    initializeDragToScroll();
+        console.log('Now calling loadExistingSpots()');
+        loadExistingSpots();
+
+        // After loading existing spots, load captured station data
+        setTimeout(() => {
+            loadCapturedStationData();
+            updateAllStationTotals();
+        }, 1000); // Increased timeout
+
+        initializeDragToScroll();
+    } catch (error) {
+        console.error('Error in initializePage:', error);
+    }
+}
+
+// Try multiple event listeners for maximum reliability
+document.addEventListener('DOMContentLoaded', initializePage);
+window.addEventListener('load', function() {
+    console.log('Window load event - calling loadExistingSpots again');
+    setTimeout(loadExistingSpots, 100);
 });
+
+// Also try immediate execution if document is already ready
+if (document.readyState === 'loading') {
+    console.log('Document still loading, waiting for DOMContentLoaded');
+} else {
+    console.log('Document already loaded, calling initializePage immediately');
+    setTimeout(initializePage, 100);
+}
+
+// EMERGENCY SPOT COUNT LOADER - Force load spots every 2 seconds until they appear
+let spotCheckInterval = setInterval(function() {
+    console.log('=== EMERGENCY SPOT CHECK ===');
+
+    // Check if any spot numbers are still 0
+    const spotNumbers = document.querySelectorAll('.spot-number');
+    console.log(`Found ${spotNumbers.length} spot number elements`);
+
+    // Try to load spots from API
+    fetch('/api/plans/{{ plan.id }}')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Emergency check - API returned:', data.spots);
+
+            if (data.spots && data.spots.length > 0) {
+                console.log('Found spots in API, updating display...');
+
+                data.spots.forEach(spot => {
+                    // Simple approach - find ANY row for this station/time slot
+                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"]`);
+                    console.log(`Found ${rows.length} rows for station ${spot.station_id}, time ${spot.time_slot}`);
+
+                    rows.forEach(row => {
+                        const spotNumberElement = row.querySelector('.spot-number');
+                        if (spotNumberElement) {
+                            console.log(`Updating spot count from ${spotNumberElement.textContent} to ${spot.spot_count}`);
+                            spotNumberElement.textContent = spot.spot_count;
+                        }
+                    });
+                });
+
+                // Stop checking once we've found and updated spots
+                clearInterval(spotCheckInterval);
+            } else {
+                console.log('No spots found in API response');
+            }
+        })
+        .catch(error => {
+            console.error('Emergency spot check error:', error);
+        });
+}, 2000); // Check every 2 seconds
+
+// Stop the emergency checker after 30 seconds
+setTimeout(() => {
+    clearInterval(spotCheckInterval);
+    console.log('Emergency spot checker stopped');
+}, 30000);
 
 function generateCalendarGrid() {
     const startDate = new Date('{{ plan.start_date }}');
@@ -716,7 +866,7 @@ function calculateRowPrices(row) {
     // Get values from the row
     const basePrice = parseFloat(row.querySelector('.base-price').textContent || 0);
     const seasonalIndex = parseFloat(row.querySelector('.seasonal-index').textContent || 1.0);
-    const spotCount = parseInt(row.querySelector('.spot-count').textContent || 0);
+    const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
     // Calculate price with seasonal index
     const priceWithIndex = basePrice * seasonalIndex;
@@ -778,7 +928,7 @@ function calculateRowTotalsOnly(row) {
         totalSpots += count;
     });
 
-    row.querySelector('.spot-count').textContent = totalSpots;
+    row.querySelector('.spot-number').textContent = totalSpots;
     row.querySelector('.total-grp').textContent = (totalSpots * parseFloat(row.querySelector('.grp').textContent || 0)).toFixed(2);
     row.querySelector('.total-trp').textContent = (totalSpots * parseFloat(row.querySelector('.trp').textContent || 0)).toFixed(2);
 
@@ -972,17 +1122,74 @@ function updateAllStationTotals() {
 }
 
 function loadExistingSpots() {
+    console.log('=== LOAD EXISTING SPOTS CALLED ===');
+    console.log('Plan ID: {{ plan.id }}');
+
     // Load existing spots from the plan and populate saved ratings/prices
     fetch(`/api/plans/{{ plan.id }}`)
         .then(response => response.json())
         .then(data => {
-            if (data.spots) {
+            console.log('Loading existing spots:', data.spots);
+
+            if (data.spots && data.spots.length > 0) {
                 const stationIds = new Set();
 
                 data.spots.forEach(spot => {
                     // Find the row that matches both station and time slot
-                    const isWeekend = new Date(spot.date).getDay() >= 5;
-                    const row = document.querySelector(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${isWeekend}"]`);
+                    const spotDate = new Date(spot.date);
+                    const dayOfWeek = spotDate.getDay();
+                    // JavaScript: Sunday = 0, Monday = 1, ..., Saturday = 6
+                    // Python weekday(): Monday = 0, Tuesday = 1, ..., Sunday = 6
+                    // Python uses >= 5 for weekend (Saturday=5, Sunday=6)
+                    // So we need to match Python's logic: convert JS day to Python weekday
+                    const pythonWeekday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert JS to Python weekday
+                    const isWeekend = pythonWeekday >= 5; // Match Python's weekend calculation
+
+                    console.log(`Spot date: ${spot.date}, Day of week: ${dayOfWeek}, Is weekend: ${isWeekend}`);
+                    console.log(`Looking for row: station=${spot.station_id}, time=${spot.time_slot}, weekend=${isWeekend}`);
+
+                    const selector = `tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${isWeekend}"]`;
+                    console.log(`Using selector: ${selector}`);
+
+                    const row = document.querySelector(selector);
+
+                    // Also check what rows exist for this station
+                    const allStationRows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"]`);
+                    console.log(`Found ${allStationRows.length} rows for station ${spot.station_id}`);
+                    if (allStationRows.length > 0) {
+                        console.log('First few rows:', Array.from(allStationRows).slice(0, 3).map(r => ({
+                            timeSlot: r.getAttribute('data-time-slot'),
+                            isWeekend: r.getAttribute('data-is-weekend')
+                        })));
+                    }
+
+                    if (row) {
+                        console.log(`Found row, updating spot count to ${spot.spot_count}`);
+
+                        // Update the spot count display in the "Klipų skaičius" column
+                        const spotNumberElement = row.querySelector('.spot-number');
+                        if (spotNumberElement) {
+                            spotNumberElement.textContent = spot.spot_count;
+                            console.log(`Updated spot number display to ${spot.spot_count}`);
+                        }
+                    } else {
+                        console.log(`Row not found with exact match. Trying without weekend filter...`);
+                        // Try finding without the weekend filter as a fallback
+                        const fallbackRow = document.querySelector(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"]`);
+                        if (fallbackRow) {
+                            console.log(`Found row with fallback selector`);
+                            const spotNumberElement = fallbackRow.querySelector('.spot-number');
+                            if (spotNumberElement) {
+                                // Get the current value and add to it (in case there are multiple spots)
+                                const currentValue = parseInt(spotNumberElement.textContent) || 0;
+                                spotNumberElement.textContent = currentValue + spot.spot_count;
+                                console.log(`Updated spot number display to ${currentValue + spot.spot_count} (was ${currentValue})`);
+                            }
+                            row = fallbackRow; // Set row for calendar cell marking
+                        } else {
+                            console.log(`ERROR: Could not find row for station ${spot.station_id}, time slot ${spot.time_slot}`);
+                        }
+                    }
 
                     if (row) {
                         // Mark the calendar cell
@@ -1076,7 +1283,7 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     // Get values from the row
     const basePrice = parseFloat(row.querySelector('.base-price').textContent || 0);
     const seasonalIndex = parseFloat(row.querySelector('.seasonal-index').textContent || 1.0);
-    const spotCount = parseInt(row.querySelector('.spot-count').textContent || 0);
+    const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
     // Calculate price with seasonal index
     const priceWithIndex = basePrice * seasonalIndex;
@@ -1204,6 +1411,158 @@ function initializeDragToScroll() {
     });
 }
 
+// Spot count control buttons
+$(document).on('click', '.btn-spot-control', function() {
+    const action = $(this).data('action');
+    const row = $(this).closest('tr');
+    const spotNumberElement = $(this).siblings('.spot-number');
+    const currentCount = parseInt(spotNumberElement.text()) || 0;
+
+    let newCount = currentCount;
+    if (action === 'plus') {
+        newCount = currentCount + 1;
+    } else if (action === 'minus') {
+        newCount = Math.max(0, currentCount - 1);
+    }
+
+    // Update the display immediately
+    spotNumberElement.text(newCount);
+
+    // Get row data - use attr() instead of data() to get exact attribute values
+    const stationId = row.attr('data-station-id');
+    const timeSlot = row.attr('data-time-slot');
+
+    console.log('Row data extraction:', {
+        stationId: stationId,
+        timeSlot: timeSlot,
+        stationIdType: typeof stationId,
+        timeSlotType: typeof timeSlot,
+        rowAttributes: {
+            'data-station-id': row.attr('data-station-id'),
+            'data-time-slot': row.attr('data-time-slot')
+        }
+    });
+
+    // Find a date with existing spots for this row, or use current date
+    let selectedDate = null;
+    const calendarCells = row.find('.calendar-cell');
+    console.log('Found calendar cells:', calendarCells.length);
+
+    row.find('.calendar-cell .spot-indicator').each(function() {
+        if ($(this).text() && parseInt($(this).text()) > 0) {
+            selectedDate = $(this).closest('.calendar-cell').attr('data-date');
+            console.log('Found existing spot date:', selectedDate);
+            return false; // break
+        }
+    });
+
+    // If no existing spots, use the first calendar cell date
+    if (!selectedDate) {
+        const firstCell = row.find('.calendar-cell').first();
+        selectedDate = firstCell.attr('data-date');
+        console.log('Using first calendar cell date:', selectedDate, 'from cell:', firstCell.length > 0);
+
+        // Fallback: if still no date, use plan start date
+        if (!selectedDate) {
+            selectedDate = '{{ plan.start_date }}';
+            console.log('Using plan start date as fallback:', selectedDate);
+        }
+    }
+
+    console.log('Final data before API call:', {
+        stationId: stationId,
+        timeSlot: timeSlot,
+        selectedDate: selectedDate,
+        newCount: newCount
+    });
+
+    // Update spot count in database
+    updateSpotCountInDatabase(stationId, timeSlot, selectedDate, newCount, row);
+});
+
+function updateSpotCountInDatabase(stationId, timeSlot, date, spotCount, row) {
+    // Validate required fields before sending
+    console.log('=== DEBUGGING API CALL DATA ===');
+    console.log('stationId:', stationId, '(type:', typeof stationId, ')');
+    console.log('timeSlot:', timeSlot, '(type:', typeof timeSlot, ')');
+    console.log('date:', date, '(type:', typeof date, ')');
+    console.log('spotCount:', spotCount, '(type:', typeof spotCount, ')');
+
+    if (!stationId) {
+        alert('Error: Station ID is missing');
+        return;
+    }
+    if (!timeSlot) {
+        alert('Error: Time slot is missing');
+        return;
+    }
+    if (!date) {
+        alert('Error: Date is missing');
+        return;
+    }
+
+    console.log('Updating spot count:', {
+        station_id: parseInt(stationId),
+        time_slot: timeSlot,
+        date: date,
+        spot_count: parseInt(spotCount)
+    });
+
+    $.ajax({
+        url: `/api/plans/{{ plan.id }}/spots/update-count`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            station_id: parseInt(stationId),
+            time_slot: timeSlot,
+            date: date,
+            spot_count: parseInt(spotCount)
+        }),
+        success: function(response) {
+            console.log('Spot count updated successfully', response);
+            // Update the row totals and calculations
+            recalculateRowTotals(row);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error updating spot count:', error);
+            console.error('XHR response:', xhr.responseText);
+            let errorMessage = 'BAD REQUEST';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMessage = response.error || error;
+            } catch (e) {
+                errorMessage = error + ' (Status: ' + xhr.status + ')';
+            }
+            alert('Error updating spot count: ' + errorMessage);
+            // Revert the display
+            const spotNumberElement = row.find('.spot-number');
+            const originalCount = spotCount === 1 ? 0 : (spotCount === 0 ? 1 : spotCount);
+            spotNumberElement.text(originalCount);
+        }
+    });
+}
+
+function recalculateRowTotals(row) {
+    // Get spot count
+    const spotCount = parseInt(row.find('.spot-number').text()) || 0;
+
+    // Update total GRP and TRP
+    const grp = parseFloat(row.find('.grp').text()) || 0;
+    const trp = parseFloat(row.find('.trp').text()) || 0;
+
+    row.find('.total-grp').text((grp * spotCount).toFixed(2));
+    row.find('.total-trp').text((trp * spotCount).toFixed(2));
+
+    // Update pricing calculations
+    const basePrice = parseFloat(row.find('.base-price').text()) || 0;
+    const finalPrice = parseFloat(row.find('.final-price').text()) || 0;
+
+    row.find('.total-before-discount').text((basePrice * spotCount).toFixed(2));
+    row.find('.total-after-discount').text((finalPrice * spotCount).toFixed(2));
+
+    // Recalculate station totals
+    updateAllStationTotals();
+}
 
 </script>
 
@@ -1910,3 +2269,4 @@ function initializeDragToScroll() {
 
 </style>
 {% endblock %}
+

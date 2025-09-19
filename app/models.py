@@ -219,7 +219,8 @@ class RadioSpot(db.Model):
         return self.final_price
 
     def __repr__(self):
-        return f'<RadioSpot {self.station.name} {self.date} {self.time_slot}>'
+        station_name = self.station.name if self.station else f'Station#{self.station_id}'
+        return f'<RadioSpot {station_name} {self.date} {self.time_slot}>'
 
 class StationZonePrice(db.Model):
     """Zone-based pricing for radio stations"""
