@@ -460,6 +460,40 @@ tr:not(.weekend-row) .weekend-cell {
     cursor: not-allowed;
 }
 
+/* Plus button - Green */
+.btn-plus {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+.btn-plus:hover {
+    background: #218838;
+    border-color: #1e7e34;
+    color: white;
+}
+.btn-plus:active {
+    background: #1e7e34;
+    color: white;
+    transform: scale(0.95);
+}
+
+/* Minus button - Red */
+.btn-minus {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+.btn-minus:hover {
+    background: #c82333;
+    border-color: #bd2130;
+    color: white;
+}
+.btn-minus:active {
+    background: #bd2130;
+    color: white;
+    transform: scale(0.95);
+}
+
 .btn-minus:hover {
     background: #f8d7da;
     border-color: #dc3545;
@@ -547,9 +581,21 @@ function loadSpotCounts() {
                 console.log('Found spots in API, updating display...');
 
                 data.spots.forEach(spot => {
-                    // Simple approach - find ANY row for this station/time slot
-                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"]`);
-                    console.log(`Found ${rows.length} rows for station ${spot.station_id}, time ${spot.time_slot}`);
+                    // Determine if this spot is for a weekend based on the date
+                    const spotDate = new Date(spot.date);
+                    const dayOfWeek = spotDate.getDay();
+                    // JavaScript: Sunday = 0, Monday = 1, ..., Saturday = 6
+                    // Python weekday(): Monday = 0, Tuesday = 1, ..., Sunday = 6
+                    // Python uses >= 5 for weekend (Saturday=5, Sunday=6)
+                    // So we need to match Python's logic: convert JS day to Python weekday
+                    const pythonWeekday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert JS to Python weekday
+                    const isWeekend = pythonWeekday >= 5; // Match Python's weekend calculation
+
+                    console.log(`Spot date: ${spot.date}, dayOfWeek: ${dayOfWeek}, pythonWeekday: ${pythonWeekday}, isWeekend: ${isWeekend}`);
+
+                    // Find the SPECIFIC row for this station/time slot/weekend status
+                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${isWeekend}"]`);
+                    console.log(`Found ${rows.length} rows for station ${spot.station_id}, time ${spot.time_slot}, weekend=${isWeekend}`);
 
                     rows.forEach(row => {
                         const spotNumberElement = row.querySelector('.spot-number');
