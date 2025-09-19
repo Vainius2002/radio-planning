@@ -556,11 +556,47 @@ function loadSpotCounts() {
                         if (spotNumberElement) {
                             console.log(`Updating spot count from ${spotNumberElement.textContent} to ${spot.spot_count}`);
                             spotNumberElement.textContent = spot.spot_count;
+
+                            // Recalculate TRP price and other calculations for this row
+                            console.log(`Calling calculateRowPrices for station ${spot.station_id}, time ${spot.time_slot}`);
+                            calculateRowPrices(row);
                         }
                     });
                 });
 
                 console.log('Spot counts loaded successfully!');
+
+                // Load prices for all stations first, then calculate TRP prices
+                console.log('Loading prices for all stations and calculating TRP...');
+                setTimeout(() => {
+                    // Trigger price loading for all stations
+                    console.log('Triggering price loading for all stations...');
+                    if (typeof loadStationPrices === 'function') {
+                        loadStationPrices();
+                    }
+
+                    // Wait a bit for prices to load, then calculate TRP
+                    setTimeout(() => {
+                        console.log('Calculating TRP prices for all rows...');
+                        const allRows = document.querySelectorAll('tr[data-station-id][data-time-slot]');
+                        allRows.forEach(row => {
+                            const stationId = row.getAttribute('data-station-id');
+                            const timeSlot = row.getAttribute('data-time-slot');
+                            const basePrice = parseFloat(row.querySelector('.base-price')?.textContent || 0);
+                            const trp = parseFloat(row.querySelector('.trp')?.textContent || 0);
+
+                            console.log(`Station ${stationId}, time ${timeSlot}: basePrice=${basePrice}, trp=${trp}`);
+
+                            if (basePrice > 0 && trp > 0) {
+                                const trpPrice = basePrice / trp;
+                                row.querySelector('.trp-price').textContent = trpPrice.toFixed(2);
+                                console.log(`✓ TRP price calculated: ${trpPrice.toFixed(2)}`);
+                            } else {
+                                console.log(`✗ Skipping (missing data): basePrice=${basePrice}, trp=${trp}`);
+                            }
+                        });
+                    }, 1000); // Wait 1 second for prices to load
+                }, 100);
             } else {
                 console.log('No spots found in API response');
             }
@@ -884,9 +920,13 @@ function calculateRowPrices(row) {
 
     // Calculate TRP price if TRP is available using formula: įkainis / TRP
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
+    console.log(`TRP calculation - basePrice: ${basePrice}, trp: ${trp}, station: ${row.getAttribute('data-station-id')}, time: ${row.getAttribute('data-time-slot')}`);
     if (trp > 0) {
         const trpPrice = basePrice / trp;
+        console.log(`TRP price calculated: ${trpPrice.toFixed(2)}`);
         row.querySelector('.trp-price').textContent = trpPrice.toFixed(2);
+    } else {
+        console.log('TRP is 0 or missing, skipping TRP price calculation');
     }
 }
 
@@ -1301,9 +1341,13 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
 
     // Calculate TRP price if TRP is available using formula: įkainis / TRP
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
+    console.log(`TRP calculation - basePrice: ${basePrice}, trp: ${trp}, station: ${row.getAttribute('data-station-id')}, time: ${row.getAttribute('data-time-slot')}`);
     if (trp > 0) {
         const trpPrice = basePrice / trp;
+        console.log(`TRP price calculated: ${trpPrice.toFixed(2)}`);
         row.querySelector('.trp-price').textContent = trpPrice.toFixed(2);
+    } else {
+        console.log('TRP is 0 or missing, skipping TRP price calculation');
     }
 }
 
