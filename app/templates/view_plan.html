@@ -418,6 +418,11 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStationPrices();
     loadExistingSpots();
     initializeDragToScroll();
+
+    // Calculate initial station totals after all data is loaded
+    setTimeout(() => {
+        updateAllStationTotals();
+    }, 1000);
 });
 
 function generateCalendarGrid() {
@@ -649,7 +654,7 @@ function toggleSpot(cell) {
     updateRowTotals(row);
 }
 
-function updateRowTotals(row) {
+function calculateRowTotalsOnly(row) {
     const calendarCells = row.querySelectorAll('.calendar-cell');
     let totalSpots = 0;
 
@@ -664,6 +669,10 @@ function updateRowTotals(row) {
 
     // Recalculate prices based on new spot count
     calculateRowPrices(row);
+}
+
+function updateRowTotals(row) {
+    calculateRowTotalsOnly(row);
 
     // Update station totals after updating row totals
     const stationId = row.dataset.stationId;
@@ -749,31 +758,86 @@ function updateCalendarSpotCounts() {
 }
 
 function updateStationTotals(stationId) {
-    const stationRows = document.querySelectorAll(`.station-${stationId}-row`);
+    // Use a small timeout to ensure all DOM updates have completed
+    setTimeout(() => {
+        const stationRows = document.querySelectorAll(`.station-${stationId}-row`);
+
+        console.log(`updateStationTotals: Looking for station ${stationId}, found ${stationRows.length} rows`);
+
     let totalSpots = 0;
-    let totalGrp = 0;
-    let totalTrp = 0;
+    let sumOfGrpValues = 0;  // Sum of all total-grp values
+    let sumOfTrpValues = 0;  // Sum of all total-trp values
+    let sumOfAffinityValues = 0;  // Sum of all affinity values
     let totalBeforeDiscount = 0;
     let totalAfterDiscount = 0;
 
-    stationRows.forEach(row => {
-        totalSpots += parseInt(row.querySelector('.spot-count').textContent) || 0;
-        totalGrp += parseFloat(row.querySelector('.total-grp').textContent) || 0;
-        totalTrp += parseFloat(row.querySelector('.total-trp').textContent) || 0;
-        totalBeforeDiscount += parseFloat(row.querySelector('.total-before-discount').textContent) || 0;
-        totalAfterDiscount += parseFloat(row.querySelector('.total-after-discount').textContent) || 0;
+    stationRows.forEach((row, index) => {
+        // Get the spot count for this row
+        const spotCount = parseInt(row.querySelector('.spot-count')?.textContent) || 0;
+
+        // Get the TOTAL GRP and TRP values from the total columns (these are already calculated as spots × rating)
+        const totalGrpValue = parseFloat(row.querySelector('.total-grp')?.textContent) || 0;
+        const totalTrpValue = parseFloat(row.querySelector('.total-trp')?.textContent) || 0;
+
+        // Get the affinity value directly from the cell
+        const affinityValue = parseFloat(row.querySelector('.affinity')?.textContent) || 0;
+
+        // Debug: log what values we're reading
+        const totalGrpElement = row.querySelector('.total-grp');
+        const totalTrpElement = row.querySelector('.total-trp');
+        const affinityElement = row.querySelector('.affinity');
+
+        console.log(`Row ${index}: totalGrp=${totalGrpValue}, totalTrp=${totalTrpValue}, affinity=${affinityValue}`);
+        console.log(`Row ${index} elements found:`,
+            totalGrpElement ? 'total-grp: YES' : 'total-grp: NO',
+            totalTrpElement ? 'total-trp: YES' : 'total-trp: NO',
+            affinityElement ? 'affinity: YES' : 'affinity: NO'
+        );
+        if (totalGrpElement) console.log(`Row ${index} total-grp text:`, totalGrpElement.textContent);
+        if (affinityElement) console.log(`Row ${index} affinity text:`, affinityElement.textContent);
+
+        // Sum up the total GRP, total TRP, and Affinity values
+        sumOfGrpValues += totalGrpValue;
+        sumOfTrpValues += totalTrpValue;
+        sumOfAffinityValues += affinityValue;
+
+        // Get price totals
+        const beforeDiscount = parseFloat(row.querySelector('.total-before-discount')?.textContent) || 0;
+        const afterDiscount = parseFloat(row.querySelector('.total-after-discount')?.textContent) || 0;
+
+        // Add to totals
+        totalSpots += spotCount;
+        totalBeforeDiscount += beforeDiscount;
+        totalAfterDiscount += afterDiscount;
     });
 
-    // Calculate affinity (TRP / GRP)
-    const totalAffinity = totalGrp > 0 ? (totalTrp / totalGrp).toFixed(2) : 0;
+    // Update station total cells in the existing VISO row
+    // Display the sum of all values
+    console.log(`Station ${stationId} totals: GRP=${sumOfGrpValues}, TRP=${sumOfTrpValues}, Affinity=${sumOfAffinityValues}`);
 
-    // Update station total cells
     document.getElementById(`station-${stationId}-total-spots`).textContent = totalSpots;
-    document.getElementById(`station-${stationId}-total-grp`).textContent = totalGrp.toFixed(2);
-    document.getElementById(`station-${stationId}-total-trp`).textContent = totalTrp.toFixed(2);
-    document.getElementById(`station-${stationId}-total-affinity`).textContent = totalAffinity;
+    document.getElementById(`station-${stationId}-total-grp`).textContent = sumOfGrpValues.toFixed(2);
+    document.getElementById(`station-${stationId}-total-trp`).textContent = sumOfTrpValues.toFixed(2);
+    document.getElementById(`station-${stationId}-total-affinity`).textContent = sumOfAffinityValues.toFixed(2);
     document.getElementById(`station-${stationId}-total-before-discount`).textContent = totalBeforeDiscount.toFixed(2);
     document.getElementById(`station-${stationId}-total-after-discount`).textContent = totalAfterDiscount.toFixed(2);
+    }, 100); // Close setTimeout with 100ms delay
+}
+
+function updateAllStationTotals() {
+    // Get all unique station IDs from the page
+    const stationIds = new Set();
+    document.querySelectorAll('[data-station-id]').forEach(element => {
+        const stationId = element.dataset.stationId;
+        if (stationId) {
+            stationIds.add(stationId);
+        }
+    });
+
+    // Update totals for each station
+    stationIds.forEach(stationId => {
+        updateStationTotals(stationId);
+    });
 }
 
 function loadExistingSpots() {
@@ -782,6 +846,8 @@ function loadExistingSpots() {
         .then(response => response.json())
         .then(data => {
             if (data.spots) {
+                const stationIds = new Set();
+
                 data.spots.forEach(spot => {
                     const row = document.querySelector(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"]`);
                     if (row) {
@@ -792,7 +858,13 @@ function loadExistingSpots() {
                             cell.classList.add('has-spot');
                         }
                         updateRowTotals(row);
+                        stationIds.add(spot.station_id);
                     }
+                });
+
+                // Update station totals for all stations that have spots
+                stationIds.forEach(stationId => {
+                    updateStationTotals(stationId);
                 });
             }
         })
@@ -970,6 +1042,7 @@ function initializeDragToScroll() {
         });
     });
 }
+
 
 </script>
 
@@ -1673,5 +1746,6 @@ function initializeDragToScroll() {
 .table-container {
     overflow-x: auto;
 }
+
 </style>
 {% endblock %}
