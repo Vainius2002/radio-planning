@@ -504,6 +504,9 @@ function initializePage() {
         setTimeout(() => {
             loadCapturedStationData();
             updateAllStationTotals();
+
+            // Load spot counts AFTER all other initialization is complete
+            setTimeout(loadSpotCounts, 200);
         }, 1000); // Increased timeout
 
         initializeDragToScroll();
@@ -527,19 +530,18 @@ if (document.readyState === 'loading') {
     setTimeout(initializePage, 100);
 }
 
-// EMERGENCY SPOT COUNT LOADER - Force load spots every 2 seconds until they appear
-let spotCheckInterval = setInterval(function() {
-    console.log('=== EMERGENCY SPOT CHECK ===');
+// SPOT COUNT LOADER - Load spots once on page load
+function loadSpotCounts() {
+    console.log('=== LOADING SPOT COUNTS ON PAGE LOAD ===');
 
-    // Check if any spot numbers are still 0
     const spotNumbers = document.querySelectorAll('.spot-number');
     console.log(`Found ${spotNumbers.length} spot number elements`);
 
-    // Try to load spots from API
+    // Load spots from API
     fetch('/api/plans/{{ plan.id }}')
         .then(response => response.json())
         .then(data => {
-            console.log('Emergency check - API returned:', data.spots);
+            console.log('Page load - API returned:', data.spots);
 
             if (data.spots && data.spots.length > 0) {
                 console.log('Found spots in API, updating display...');
@@ -558,22 +560,17 @@ let spotCheckInterval = setInterval(function() {
                     });
                 });
 
-                // Stop checking once we've found and updated spots
-                clearInterval(spotCheckInterval);
+                console.log('Spot counts loaded successfully!');
             } else {
                 console.log('No spots found in API response');
             }
         })
         .catch(error => {
-            console.error('Emergency spot check error:', error);
+            console.error('Spot count loading error:', error);
         });
-}, 2000); // Check every 2 seconds
+}
 
-// Stop the emergency checker after 30 seconds
-setTimeout(() => {
-    clearInterval(spotCheckInterval);
-    console.log('Emergency spot checker stopped');
-}, 30000);
+// loadSpotCounts is now called from initializePage after other initialization
 
 function generateCalendarGrid() {
     const startDate = new Date('{{ plan.start_date }}');
