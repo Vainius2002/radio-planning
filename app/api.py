@@ -787,3 +787,58 @@ def update_station_rating(station_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Error updating rating: {str(e)}'}), 500
+
+@api_bp.route('/seasonal-indices/station/<int:station_id>/month/<int:month>', methods=['GET'])
+def get_station_seasonal_index(station_id, month):
+    """Get seasonal index for a station based on its group and month"""
+    try:
+        # Get the station and its group
+        station = RadioStation.query.get_or_404(station_id)
+        group_id = station.group_id
+
+        print(f"Looking for seasonal index: station_id={station_id}, group_id={group_id}, month={month}")
+
+        # First try to get group-specific seasonal index
+        seasonal_index = SeasonalIndex.query.filter_by(
+            group_id=group_id,
+            month=month,
+            is_active=True
+        ).first()
+
+        if seasonal_index:
+            print(f"Found group-specific seasonal index: {seasonal_index.index_value}")
+            return jsonify({
+                'seasonal_index': seasonal_index.index_value,
+                'source': 'group_specific',
+                'group_id': group_id,
+                'month': month
+            })
+
+        # Fall back to global seasonal index if no group-specific one exists
+        global_seasonal_index = SeasonalIndex.query.filter_by(
+            group_id=None,
+            month=month,
+            is_active=True
+        ).first()
+
+        if global_seasonal_index:
+            print(f"Found global seasonal index: {global_seasonal_index.index_value}")
+            return jsonify({
+                'seasonal_index': global_seasonal_index.index_value,
+                'source': 'global',
+                'group_id': None,
+                'month': month
+            })
+
+        # No seasonal index found, return default 1.0
+        print(f"No seasonal index found, returning default 1.0")
+        return jsonify({
+            'seasonal_index': 1.0,
+            'source': 'default',
+            'group_id': group_id,
+            'month': month
+        })
+
+    except Exception as e:
+        print(f"Error getting seasonal index: {str(e)}")
+        return jsonify({'error': f'Error getting seasonal index: {str(e)}'}), 500

@@ -215,9 +215,8 @@
                             <!-- Pricing columns -->
                             <th class="trp-price-header">1 sec TRP<br>kaina</th>
                             <th class="base-price-header">Įkainis</th>
-                            <th class="seasonal-header">Antkainis</th>
-                            <th class="price-with-index-header">Antkainis<br>padidintas</th>
-                            <th class="clip-price-header">Klipo kaina<br>EUR</th>
+                            <th class="seasonal-header">Spec. Indeksas</th>
+                            <th class="price-with-index-header">Sez. Indeksas</th>
                             <!-- Totals columns -->
                             <th class="final-price-header">GROSS<br>kaina</th>
                             <th class="total-before-header">Kaina po mūsų<br>nuolaidos</th>
@@ -256,9 +255,8 @@
                                 <td class="affinity">0</td>
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
-                                <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1.0) }}</td>
+                                <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1) }}</td>
                                 <td class="price-with-index">0</td>
-                                <td class="clip-price">0</td>
                                 <td class="final-price">0</td>
                                 <td class="total-before-discount">0</td>
                                 <td class="total-after-discount">0</td>
@@ -296,9 +294,8 @@
                                 <td class="affinity">0</td>
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
-                                <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1.0) }}</td>
+                                <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1) }}</td>
                                 <td class="price-with-index">0</td>
-                                <td class="clip-price">0</td>
                                 <td class="final-price">0</td>
                                 <td class="total-before-discount">0</td>
                                 <td class="total-after-discount">0</td>
@@ -530,6 +527,7 @@ function initializePage() {
         // After loading existing spots, load captured station data
         setTimeout(() => {
             loadCapturedStationData();
+            loadSeasonalIndices(); // Load seasonal indices for current month
 
             // Load spot counts AFTER all other initialization is complete
             setTimeout(() => {
@@ -725,6 +723,63 @@ function generateCalendarGrid() {
     });
 
     calendarBody.innerHTML = bodyHtml;
+}
+
+// Load seasonal indices for all stations based on current month
+function loadSeasonalIndices() {
+    console.log('=== LOADING SEASONAL INDICES ===');
+
+    // Get current month (1-12)
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based, so add 1
+
+    console.log(`Current month: ${currentMonth}`);
+
+    // Get all unique station IDs and their groups
+    const stationElements = document.querySelectorAll('[data-station-id]');
+    const stationIds = new Set();
+
+    stationElements.forEach(element => {
+        const stationId = element.dataset.stationId;
+        if (stationId) {
+            stationIds.add(stationId);
+        }
+    });
+
+    console.log(`Found ${stationIds.size} unique stations:`, Array.from(stationIds));
+
+    // Load seasonal indices for each station
+    stationIds.forEach(stationId => {
+        console.log(`Loading seasonal index for station ${stationId}`);
+
+        fetch(`/api/seasonal-indices/station/${stationId}/month/${currentMonth}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Station ${stationId} seasonal index data:`, data);
+
+                if (data.seasonal_index !== undefined) {
+                    // Update all rows for this station with the seasonal index
+                    const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+
+                    stationRows.forEach(row => {
+                        const seasonalCell = row.querySelector('.seasonal-index');
+                        if (seasonalCell) {
+                            const oldValue = seasonalCell.textContent;
+                            seasonalCell.textContent = data.seasonal_index;
+                            console.log(`Updated station ${stationId} seasonal index from ${oldValue} to ${data.seasonal_index}`);
+
+                            // Recalculate prices for this row
+                            calculateRowPrices(row);
+                        }
+                    });
+                } else {
+                    console.log(`No seasonal index found for station ${stationId}, keeping default value`);
+                }
+            })
+            .catch(error => {
+                console.error(`Error loading seasonal index for station ${stationId}:`, error);
+            });
+    });
 }
 
 function loadCapturedStationData() {
@@ -952,7 +1007,6 @@ function calculateRowPrices(row) {
     row.querySelector('.price-with-index').textContent = priceWithIndex.toFixed(2);
 
     // Calculate clip price (single spot price after seasonal adjustment)
-    row.querySelector('.clip-price').textContent = priceWithIndex.toFixed(2);
 
     // Calculate total before discount (price * spot count)
     const totalBeforeDiscount = priceWithIndex * spotCount;
@@ -1602,7 +1656,6 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     row.querySelector('.price-with-index').textContent = priceWithIndex.toFixed(2);
 
     // Calculate clip price (single spot price after seasonal adjustment)
-    row.querySelector('.clip-price').textContent = priceWithIndex.toFixed(2);
 
     // Calculate total before discount (price * spot count)
     const totalBeforeDiscount = priceWithIndex * spotCount;
