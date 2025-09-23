@@ -316,6 +316,32 @@
                             </tr>
                         {% endfor %}
 
+                        <!-- Station totals row -->
+                        <tr class="station-totals" data-station-id="{{ station.id }}" style="background-color: #fff3cd; font-weight: bold;">
+                            <td colspan="2" style="text-align: right; padding-right: 10px;">VISO:</td>
+                            <td></td>
+                            <td></td>
+                            <td class="station-total-spots" id="station-{{ station.id }}-total-spots">0</td>
+                            <td></td>
+                            <td class="station-total-grp" id="station-{{ station.id }}-total-grp">0</td>
+                            <td class="station-total-trp" id="station-{{ station.id }}-total-trp">0</td>
+                            <td class="station-total-affinity" id="station-{{ station.id }}-total-affinity">0</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="station-total-before-discount" id="station-{{ station.id }}-total-before-discount">0</td>
+                            <td class="station-total-after-discount" id="station-{{ station.id }}-total-after-discount">0</td>
+                            <td></td>
+                            <td></td>
+                            <!-- Empty calendar cells for totals row -->
+                            {% for date in calendar_data.dates %}
+                                <td></td>
+                            {% endfor %}
+                        </tr>
+
                     </tbody>
                 </table>
             </div>
@@ -336,6 +362,13 @@
     font-family: monospace;
 }
 
+/* Ensure station totals cells also display properly */
+.station-total-grp, .station-total-trp, .station-total-affinity {
+    min-width: 70px;
+    white-space: nowrap;
+    text-align: center;
+    font-family: monospace;
+}
 
 /* Improve overall table cell spacing */
 .radio-planning-table td {
@@ -499,7 +532,18 @@ function initializePage() {
             loadCapturedStationData();
 
             // Load spot counts AFTER all other initialization is complete
-            setTimeout(loadSpotCounts, 200);
+            setTimeout(() => {
+                loadSpotCounts();
+
+                // Update station totals AFTER everything is loaded
+                setTimeout(() => {
+                    console.log('=== CALLING updateAllStationTotals after page load ===');
+                    updateAllStationTotals();
+
+                    // Start the persistent spot count loader
+                    startPersistentSpotLoader();
+                }, 500);
+            }, 200);
         }, 1000); // Increased timeout
 
         initializeDragToScroll();
@@ -978,6 +1022,7 @@ function updateRowTotals(row) {
 
     // Update station totals after updating row totals
     const stationId = row.dataset.stationId;
+    updateStationTotals(stationId);
 
     // Update calendar view
     updateCalendarSpotCounts();
@@ -1087,7 +1132,306 @@ function updateCalendarSpotCounts() {
     });
 }
 
+function updateStationTotals(stationId) {
+    console.log(`=== updateStationTotals called for station ${stationId} ===`);
 
+    // Use a small timeout to ensure all DOM updates have completed
+    setTimeout(() => {
+        const stationRows = document.querySelectorAll(`.station-${stationId}-row`);
+        console.log(`Found ${stationRows.length} rows for station ${stationId}`);
+
+        let totalSpots = 0;
+        let totalGrp = 0;
+        let totalTrp = 0;
+        let totalAffinity = 0;
+        let totalBeforeDiscount = 0;
+        let totalAfterDiscount = 0;
+
+        stationRows.forEach((row, index) => {
+            // Debug: let's see what we can find in this row
+            const spotNumberElement = row.querySelector('.spot-number');
+            const grpElement = row.querySelector('.grp');
+            const trpElement = row.querySelector('.trp');
+            const affinityElement = row.querySelector('.affinity');
+            const beforeDiscountElement = row.querySelector('.total-before-discount');
+            const afterDiscountElement = row.querySelector('.total-after-discount');
+
+            console.log(`Row ${index}:`, row);
+            console.log(`Spot number element:`, spotNumberElement);
+            console.log(`GRP element:`, grpElement);
+            console.log(`TRP element:`, trpElement);
+            console.log(`Affinity element:`, affinityElement);
+            console.log(`Before discount element:`, beforeDiscountElement);
+            console.log(`After discount element:`, afterDiscountElement);
+
+            let spotCount = 0;
+            let grpValue = 0;
+            let trpValue = 0;
+            let affinityValue = 0;
+            let beforeDiscountValue = 0;
+            let afterDiscountValue = 0;
+
+            if (spotNumberElement) {
+                spotCount = parseInt(spotNumberElement.textContent) || 0;
+                console.log(`Found spot count: ${spotCount}`);
+                totalSpots += spotCount;
+            } else {
+                console.log(`No spot-number element found in row ${index}`);
+            }
+
+            if (grpElement) {
+                grpValue = parseFloat(grpElement.textContent) || 0;
+                console.log(`Found GRP value: ${grpValue}`);
+                // Just add the GRP value directly (not multiplied by spot count)
+                console.log(`Adding GRP value to total: ${grpValue}`);
+                totalGrp += grpValue;
+            } else {
+                console.log(`No GRP element found in row ${index}`);
+            }
+
+            if (trpElement) {
+                trpValue = parseFloat(trpElement.textContent) || 0;
+                console.log(`Found TRP value: ${trpValue}`);
+                // Just add the TRP value directly (not multiplied by spot count)
+                console.log(`Adding TRP value to total: ${trpValue}`);
+                totalTrp += trpValue;
+            } else {
+                console.log(`No TRP element found in row ${index}`);
+            }
+
+            if (affinityElement) {
+                affinityValue = parseFloat(affinityElement.textContent) || 0;
+                console.log(`Found Affinity value: ${affinityValue}`);
+                // Just add the Affinity value directly (not multiplied by spot count)
+                console.log(`Adding Affinity value to total: ${affinityValue}`);
+                totalAffinity += affinityValue;
+            } else {
+                console.log(`No Affinity element found in row ${index}`);
+            }
+
+            if (beforeDiscountElement) {
+                beforeDiscountValue = parseFloat(beforeDiscountElement.textContent) || 0;
+                console.log(`Found Before Discount value: ${beforeDiscountValue}`);
+                // Just add the Before Discount value directly
+                console.log(`Adding Before Discount value to total: ${beforeDiscountValue}`);
+                totalBeforeDiscount += beforeDiscountValue;
+            } else {
+                console.log(`No Before Discount element found in row ${index}`);
+            }
+
+            if (afterDiscountElement) {
+                afterDiscountValue = parseFloat(afterDiscountElement.textContent) || 0;
+                console.log(`Found After Discount value: ${afterDiscountValue}`);
+                // Just add the After Discount value directly
+                console.log(`Adding After Discount value to total: ${afterDiscountValue}`);
+                totalAfterDiscount += afterDiscountValue;
+            } else {
+                console.log(`No After Discount element found in row ${index}`);
+            }
+        });
+
+        console.log(`Total spots calculated: ${totalSpots}`);
+        console.log(`Total GRP calculated: ${totalGrp}`);
+        console.log(`Total TRP calculated: ${totalTrp}`);
+        console.log(`Total Affinity calculated: ${totalAffinity}`);
+        console.log(`Total Before Discount calculated: ${totalBeforeDiscount}`);
+        console.log(`Total After Discount calculated: ${totalAfterDiscount}`);
+
+        // Update the station total spots element
+        const totalSpotsElement = document.getElementById(`station-${stationId}-total-spots`);
+        console.log(`Total spots element:`, totalSpotsElement);
+
+        if (totalSpotsElement) {
+            totalSpotsElement.textContent = totalSpots;
+            console.log(`Updated station ${stationId} total spots to: ${totalSpots}`);
+        } else {
+            console.log(`Could not find element with id: station-${stationId}-total-spots`);
+        }
+
+        // Update the station total GRP element
+        const totalGrpElement = document.getElementById(`station-${stationId}-total-grp`);
+        console.log(`Total GRP element:`, totalGrpElement);
+
+        if (totalGrpElement) {
+            totalGrpElement.textContent = totalGrp.toFixed(2);
+            console.log(`Updated station ${stationId} total GRP to: ${totalGrp.toFixed(2)}`);
+        } else {
+            console.log(`Could not find element with id: station-${stationId}-total-grp`);
+        }
+
+        // Update the station total TRP element
+        const totalTrpElement = document.getElementById(`station-${stationId}-total-trp`);
+        console.log(`Total TRP element:`, totalTrpElement);
+
+        if (totalTrpElement) {
+            totalTrpElement.textContent = totalTrp.toFixed(2);
+            console.log(`Updated station ${stationId} total TRP to: ${totalTrp.toFixed(2)}`);
+        } else {
+            console.log(`Could not find element with id: station-${stationId}-total-trp`);
+        }
+
+        // Update the station total Affinity element
+        const totalAffinityElement = document.getElementById(`station-${stationId}-total-affinity`);
+        console.log(`Total Affinity element:`, totalAffinityElement);
+
+        if (totalAffinityElement) {
+            totalAffinityElement.textContent = totalAffinity.toFixed(2);
+            console.log(`Updated station ${stationId} total Affinity to: ${totalAffinity.toFixed(2)}`);
+        } else {
+            console.log(`Could not find element with id: station-${stationId}-total-affinity`);
+        }
+
+        // Update the station total Before Discount element
+        const totalBeforeDiscountElement = document.getElementById(`station-${stationId}-total-before-discount`);
+        console.log(`Total Before Discount element:`, totalBeforeDiscountElement);
+
+        if (totalBeforeDiscountElement) {
+            totalBeforeDiscountElement.textContent = totalBeforeDiscount.toFixed(2);
+            console.log(`Updated station ${stationId} total Before Discount to: ${totalBeforeDiscount.toFixed(2)}`);
+        } else {
+            console.log(`Could not find element with id: station-${stationId}-total-before-discount`);
+        }
+
+        // Update the station total After Discount element
+        const totalAfterDiscountElement = document.getElementById(`station-${stationId}-total-after-discount`);
+        console.log(`Total After Discount element:`, totalAfterDiscountElement);
+
+        if (totalAfterDiscountElement) {
+            totalAfterDiscountElement.textContent = totalAfterDiscount.toFixed(2);
+            console.log(`Updated station ${stationId} total After Discount to: ${totalAfterDiscount.toFixed(2)}`);
+        } else {
+            console.log(`Could not find element with id: station-${stationId}-total-after-discount`);
+        }
+    }, 100);
+}
+
+function updateAllStationTotals() {
+    // Get all unique station IDs from the page
+    const stationIds = new Set();
+    document.querySelectorAll('[data-station-id]').forEach(element => {
+        const stationId = element.dataset.stationId;
+        if (stationId) {
+            stationIds.add(stationId);
+        }
+    });
+
+    // Update totals for each station
+    stationIds.forEach(stationId => {
+        updateStationTotals(stationId);
+    });
+}
+
+// Persistent spot loader that keeps trying until all spots are loaded
+function startPersistentSpotLoader() {
+    console.log('=== STARTING PERSISTENT SPOT LOADER ===');
+
+    let retryCount = 0;
+    const maxRetries = 10;
+    const retryInterval = 1000; // 1 second
+
+    function checkAndLoadSpots() {
+        retryCount++;
+        console.log(`=== PERSISTENT LOADER: Attempt ${retryCount}/${maxRetries} ===`);
+
+        // Get API data and check if all spots are properly displayed
+        fetch('/api/plans/{{ plan.id }}')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.spots || data.spots.length === 0) {
+                    console.log('No spots in API data, stopping persistent loader');
+                    return;
+                }
+
+                let missingSpots = 0;
+                let totalSpots = data.spots.length;
+
+                data.spots.forEach(spot => {
+                    // Find the row for this spot
+                    const spotDate = new Date(spot.date);
+                    const dayOfWeek = spotDate.getDay();
+                    const pythonWeekday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    const isWeekend = pythonWeekday >= 5;
+
+                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${isWeekend}"]`);
+
+                    if (rows.length > 0) {
+                        const row = rows[0];
+                        const spotNumberElement = row.querySelector('.spot-number');
+
+                        if (spotNumberElement) {
+                            const currentValue = parseInt(spotNumberElement.textContent) || 0;
+
+                            if (currentValue !== spot.spot_count) {
+                                console.log(`Found missing spot: Station ${spot.station_id}, ${spot.time_slot}, expected ${spot.spot_count}, found ${currentValue}`);
+                                // Update it immediately
+                                spotNumberElement.textContent = spot.spot_count;
+
+                                // Recalculate row prices
+                                calculateRowPrices(row);
+                                missingSpots++;
+                            }
+                        } else {
+                            missingSpots++;
+                        }
+                    } else {
+                        missingSpots++;
+                    }
+                });
+
+                console.log(`Persistent loader: ${missingSpots}/${totalSpots} spots still missing or incorrect`);
+
+                if (missingSpots === 0) {
+                    console.log('=== PERSISTENT LOADER: All spots loaded successfully! ===');
+                    updateAllStationTotals(); // Final totals update
+                    return;
+                }
+
+                // If we still have missing spots and haven't exceeded max retries, try again
+                if (retryCount < maxRetries) {
+                    console.log(`Will retry in ${retryInterval}ms...`);
+                    setTimeout(checkAndLoadSpots, retryInterval);
+                } else {
+                    console.log('=== PERSISTENT LOADER: Max retries reached, giving up ===');
+                    updateAllStationTotals(); // Update totals with whatever we have
+                }
+            })
+            .catch(error => {
+                console.error('Persistent loader error:', error);
+                if (retryCount < maxRetries) {
+                    setTimeout(checkAndLoadSpots, retryInterval);
+                }
+            });
+    }
+
+    // Start the first check
+    setTimeout(checkAndLoadSpots, 1000); // Wait 1 second before first check
+}
+
+// Test function to call manually
+function testUpdateStationTotals() {
+    console.log('=== MANUAL TEST: Calling updateStationTotals(1) ===');
+
+    // First, let's see what station rows exist on the page
+    console.log('=== DEBUGGING: Looking for all station rows ===');
+    const allStationRows = document.querySelectorAll('[data-station-id]');
+    console.log('Found rows with data-station-id:', allStationRows);
+
+    allStationRows.forEach((row, index) => {
+        console.log(`Row ${index}:`, row);
+        console.log(`  - data-station-id: ${row.dataset.stationId}`);
+        console.log(`  - classes: ${row.className}`);
+    });
+
+    // Now let's specifically look for station 1 rows
+    console.log('=== DEBUGGING: Looking specifically for station 1 rows ===');
+    const station1Rows = document.querySelectorAll('.station-1-row');
+    console.log('Found station-1-row elements:', station1Rows);
+
+    const station1DataRows = document.querySelectorAll('[data-station-id="1"]');
+    console.log('Found data-station-id="1" elements:', station1DataRows);
+
+    updateStationTotals(1);
+}
 
 function loadExistingSpots() {
     console.log('=== LOAD EXISTING SPOTS CALLED ===');
@@ -1199,6 +1543,9 @@ function loadExistingSpots() {
                 });
 
                 // Update station totals for all stations that have spots
+                stationIds.forEach(stationId => {
+                    updateStationTotals(stationId);
+                });
             }
         })
         .catch(error => console.error('Error loading spots:', error));
@@ -1236,6 +1583,9 @@ function applyDiscountsToAll() {
         }
     });
 
+    stationIds.forEach(stationId => {
+        updateStationTotals(stationId);
+    });
 
     // Show success message
     showNotification('Nuolaidos pritaikytos visoms eilutėms!', 'success');
@@ -1409,24 +1759,48 @@ $(document).on('click', '.btn-spot-control', function() {
         }
     });
 
-    // Find a date with existing spots for this row, or use current date
+    // Check if this is a weekend row (VI-VII) or weekday row (I-V)
+    const isWeekendRow = row.attr('data-is-weekend') === 'true';
+    console.log('Is weekend row:', isWeekendRow);
+
+    // Find a date with existing spots for this row, but only for the correct day type
     let selectedDate = null;
     const calendarCells = row.find('.calendar-cell');
     console.log('Found calendar cells:', calendarCells.length);
 
     row.find('.calendar-cell .spot-indicator').each(function() {
         if ($(this).text() && parseInt($(this).text()) > 0) {
-            selectedDate = $(this).closest('.calendar-cell').attr('data-date');
-            console.log('Found existing spot date:', selectedDate);
-            return false; // break
+            const cellDate = $(this).closest('.calendar-cell').attr('data-date');
+
+            // Check if this date matches the row type (weekend vs weekday)
+            const cellDateObj = new Date(cellDate);
+            const dayOfWeek = cellDateObj.getDay();
+            const isWeekendDate = (dayOfWeek === 0 || dayOfWeek === 6); // Sunday = 0, Saturday = 6
+
+            console.log(`Checking date ${cellDate}: dayOfWeek=${dayOfWeek}, isWeekendDate=${isWeekendDate}, rowIsWeekend=${isWeekendRow}`);
+
+            if (isWeekendDate === isWeekendRow) {
+                selectedDate = cellDate;
+                console.log('Found matching day type spot date:', selectedDate);
+                return false; // break
+            }
         }
     });
 
-    // If no existing spots, use the first calendar cell date
+    // If no existing spots of the correct type, find the first calendar cell of the correct day type
     if (!selectedDate) {
-        const firstCell = row.find('.calendar-cell').first();
-        selectedDate = firstCell.attr('data-date');
-        console.log('Using first calendar cell date:', selectedDate, 'from cell:', firstCell.length > 0);
+        row.find('.calendar-cell').each(function() {
+            const cellDate = $(this).attr('data-date');
+            const cellDateObj = new Date(cellDate);
+            const dayOfWeek = cellDateObj.getDay();
+            const isWeekendDate = (dayOfWeek === 0 || dayOfWeek === 6);
+
+            if (isWeekendDate === isWeekendRow) {
+                selectedDate = cellDate;
+                console.log('Using first matching day type calendar cell date:', selectedDate);
+                return false; // break
+            }
+        });
 
         // Fallback: if still no date, use plan start date
         if (!selectedDate) {
@@ -1441,6 +1815,19 @@ $(document).on('click', '.btn-spot-control', function() {
         selectedDate: selectedDate,
         newCount: newCount
     });
+
+    // 🚨 VERY CLEAR LOGGING FOR DEBUGGING 🚨
+    const dateObj = new Date(selectedDate);
+    const dayOfWeek = dateObj.getDay();
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
+    const isActualWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+    console.log(`🚨🚨🚨 SPOT BUTTON CLICKED 🚨🚨🚨`);
+    console.log(`📍 ROW TYPE: ${isWeekendRow ? 'WEEKEND (VI-VII)' : 'WEEKDAY (I-V)'}`);
+    console.log(`📅 SELECTED DATE: ${selectedDate} (${dayName})`);
+    console.log(`🗓️ DATE IS ACTUALLY: ${isActualWeekend ? 'WEEKEND' : 'WEEKDAY'}`);
+    console.log(`✅ MATCH: ${isWeekendRow === isActualWeekend ? 'CORRECT' : '❌ WRONG!'}`);
+    console.log(`🚨🚨🚨 END SPOT DEBUG 🚨🚨🚨`);
 
     // Update spot count in database
     updateSpotCountInDatabase(stationId, timeSlot, selectedDate, newCount, row);
@@ -1524,6 +1911,8 @@ function recalculateRowTotals(row) {
     row.find('.total-before-discount').text((basePrice * spotCount).toFixed(2));
     row.find('.total-after-discount').text((finalPrice * spotCount).toFixed(2));
 
+    // Recalculate station totals
+    updateAllStationTotals();
 }
 
 </script>
@@ -2006,6 +2395,13 @@ function recalculateRowTotals(row) {
     padding: 0.75rem 0.5rem !important;
 }
 
+/* Station Totals Rows */
+.station-totals td {
+    background: linear-gradient(135deg, #fff7ed, #ffedd5) !important;
+    font-weight: 600 !important;
+    border-top: 2px solid #fed7aa !important;
+    border-bottom: 2px solid #fed7aa !important;
+}
 
 /* Weekend Rows */
 .weekend-row td {
