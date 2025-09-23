@@ -251,6 +251,7 @@ class PlanStationData(db.Model):
     station_id = db.Column(db.Integer, db.ForeignKey('radio_stations.id'), nullable=False)
     time_slot = db.Column(db.String(20), nullable=False)
     is_weekend = db.Column(db.Boolean, default=False)
+    month = db.Column(db.Integer, nullable=True)  # Month (1-12) for seasonal index lookup
 
     # Captured ratings (from StationRating at plan creation time)
     grp = db.Column(db.Float, default=0)

@@ -714,7 +714,6 @@ function initializePage() {
         // After loading existing spots, load captured station data
         setTimeout(() => {
             loadCapturedStationData();
-            loadSeasonalIndices(); // Load seasonal indices for current month
 
             // Load spot counts AFTER all other initialization is complete
             setTimeout(() => {
@@ -919,62 +918,7 @@ function generateCalendarGrid() {
     calendarBody.innerHTML = bodyHtml;
 }
 
-// Load seasonal indices for all stations based on current month
-function loadSeasonalIndices() {
-    console.log('=== LOADING SEASONAL INDICES ===');
-
-    // Get current month (1-12)
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based, so add 1
-
-    console.log(`Current month: ${currentMonth}`);
-
-    // Get all unique station IDs and their groups
-    const stationElements = document.querySelectorAll('[data-station-id]');
-    const stationIds = new Set();
-
-    stationElements.forEach(element => {
-        const stationId = element.dataset.stationId;
-        if (stationId) {
-            stationIds.add(stationId);
-        }
-    });
-
-    console.log(`Found ${stationIds.size} unique stations:`, Array.from(stationIds));
-
-    // Load seasonal indices for each station
-    stationIds.forEach(stationId => {
-        console.log(`Loading seasonal index for station ${stationId}`);
-
-        fetch(`/api/seasonal-indices/station/${stationId}/month/${currentMonth}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log(`Station ${stationId} seasonal index data:`, data);
-
-                if (data.seasonal_index !== undefined) {
-                    // Update all rows for this station with the seasonal index
-                    const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
-
-                    stationRows.forEach(row => {
-                        const seasonalCell = row.querySelector('.seasonal-index');
-                        if (seasonalCell) {
-                            const oldValue = seasonalCell.textContent;
-                            seasonalCell.textContent = data.seasonal_index;
-                            console.log(`Updated station ${stationId} seasonal index from ${oldValue} to ${data.seasonal_index}`);
-
-                            // Recalculate prices for this row
-                            calculateRowPrices(row);
-                        }
-                    });
-                } else {
-                    console.log(`No seasonal index found for station ${stationId}, keeping default value`);
-                }
-            })
-            .catch(error => {
-                console.error(`Error loading seasonal index for station ${stationId}:`, error);
-            });
-    });
-}
+// OLD loadSeasonalIndices function removed - now using captured seasonal indices
 
 function loadCapturedStationData() {
     // Load captured station data for this plan
@@ -985,7 +929,17 @@ function loadCapturedStationData() {
         .then(capturedData => {
             console.log(`Loaded ${capturedData.length} captured station data records`);
 
+            // Clear previous captured seasonal indices
+            capturedSeasonalIndices = {};
+
             capturedData.forEach(data => {
+                // Store seasonal indices in global object by station_id and month
+                if (data.month && data.seasonal_index !== undefined) {
+                    const key = `${data.station_id}_${data.month}`;
+                    capturedSeasonalIndices[key] = data.seasonal_index;
+                    console.log(`Stored seasonal index: Station ${data.station_id}, Month ${data.month} = ${data.seasonal_index}`);
+                }
+
                 // Find the corresponding row in the planning table
                 const row = document.querySelector(`tr[data-station-id="${data.station_id}"][data-time-slot="${data.time_slot}"][data-is-weekend="${data.is_weekend}"]`);
 
@@ -1001,15 +955,116 @@ function loadCapturedStationData() {
                     if (trpCell) trpCell.textContent = data.trp.toFixed(2);
                     if (affinityCell) affinityCell.textContent = data.affinity.toFixed(2);
                     if (basePriceCell) basePriceCell.textContent = data.base_price.toFixed(2);
-                    if (seasonalIndexCell) seasonalIndexCell.textContent = data.seasonal_index.toFixed(2);
+
+                    // Set default seasonal index for now - will be updated by loadLiveSeasonalIndices
+                    if (seasonalIndexCell) {
+                        seasonalIndexCell.textContent = "1.00";
+                    }
 
                     console.log(`Applied captured data: Station ${data.station_name}, slot ${data.time_slot}, GRP=${data.grp}, TRP=${data.trp}`);
                 }
             });
+
+            console.log(`Loaded captured station data for plan {{ plan.id }}`);
+
+            // Load LIVE seasonal indices from seasonal-adjustments
+            loadLiveSeasonalIndices();
         })
         .catch(error => {
             console.error('Error loading captured station data:', error);
         });
+}
+
+function loadLiveSeasonalIndices() {
+    console.log('=== LOADING LIVE SEASONAL INDICES FROM SEASONAL-ADJUSTMENTS ===');
+
+    // Get current month (1-12)
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based, so add 1
+
+    console.log(`Current month: ${currentMonth}`);
+
+    // Get all unique station IDs
+    const stationElements = document.querySelectorAll('[data-station-id]');
+    const stationIds = new Set();
+
+    stationElements.forEach(element => {
+        const stationId = element.dataset.stationId;
+        if (stationId) {
+            stationIds.add(stationId);
+        }
+    });
+
+    console.log(`Found ${stationIds.size} unique stations:`, Array.from(stationIds));
+
+    // Load live seasonal indices for each station
+    stationIds.forEach(stationId => {
+        console.log(`Loading LIVE seasonal index for station ${stationId}`);
+
+        fetch(`/api/seasonal-indices/station/${stationId}/month/${currentMonth}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Station ${stationId} LIVE seasonal index data:`, data);
+
+                if (data.seasonal_index !== undefined) {
+                    // Update all rows for this station with the LIVE seasonal index
+                    const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+
+                    stationRows.forEach(row => {
+                        const seasonalCell = row.querySelector('.seasonal-index');
+                        if (seasonalCell) {
+                            const oldValue = seasonalCell.textContent;
+                            seasonalCell.textContent = data.seasonal_index.toFixed(2);
+                            console.log(`Updated station ${stationId} seasonal index from ${oldValue} to ${data.seasonal_index.toFixed(2)} (LIVE from seasonal-adjustments)`);
+
+                            // Recalculate price-with-index for this row
+                            calculateRowPrices(row);
+                        }
+                    });
+                } else {
+                    console.log(`No LIVE seasonal index found for station ${stationId}, keeping default value`);
+                }
+            })
+            .catch(error => {
+                console.error(`Error loading LIVE seasonal index for station ${stationId}:`, error);
+            });
+    });
+}
+
+function setInitialSeasonalIndices() {
+    // Get plan start month
+    const planStartDate = new Date('{{ plan.start_date }}');
+    const planStartMonth = planStartDate.getMonth() + 1;
+
+    console.log(`Setting initial seasonal indices for plan start month: ${planStartMonth}`);
+
+    // Get all unique station IDs
+    const stationIds = new Set();
+    document.querySelectorAll('[data-station-id]').forEach(element => {
+        const stationId = element.dataset.stationId;
+        if (stationId) {
+            stationIds.add(stationId);
+        }
+    });
+
+    // Set initial seasonal index for each station based on plan start month
+    stationIds.forEach(stationId => {
+        const seasonalIndex = getCapturedSeasonalIndex(stationId, planStartMonth);
+        if (seasonalIndex !== null) {
+            console.log(`Setting initial seasonal index for station ${stationId}: ${seasonalIndex}`);
+
+            // Update all rows for this station
+            const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+            stationRows.forEach(row => {
+                const seasonalCell = row.querySelector('.seasonal-index');
+                if (seasonalCell) {
+                    seasonalCell.textContent = seasonalIndex.toFixed(2);
+                    // Recalculate prices with the correct seasonal index
+                    calculateRowPrices(row);
+                }
+            });
+        }
+    });
 }
 
 function applyCurrentRatingsForPreview(stationId, ratings) {
@@ -1196,9 +1251,19 @@ function calculateRowPrices(row) {
     const seasonalIndex = parseFloat(row.querySelector('.seasonal-index').textContent || 1.0);
     const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
-    // Calculate price with seasonal index
-    const priceWithIndex = basePrice * seasonalIndex;
-    row.querySelector('.price-with-index').textContent = priceWithIndex.toFixed(2);
+    console.log(`calculateRowPrices: basePrice=${basePrice}, seasonalIndex=${seasonalIndex}, spotCount=${spotCount}`);
+
+    // Spec. ikainis (price-with-index) should always be 1.0
+    const priceWithIndex = 1.0;
+    console.log(`calculateRowPrices: priceWithIndex = 1.0 (fixed value, not calculated)`);
+
+    const priceWithIndexCell = row.querySelector('.price-with-index');
+    if (priceWithIndexCell) {
+        priceWithIndexCell.textContent = priceWithIndex.toFixed(2);
+        console.log(`calculateRowPrices: Updated price-with-index to ${priceWithIndex.toFixed(2)}`);
+    } else {
+        console.log(`calculateRowPrices: Could not find .price-with-index cell`);
+    }
 
     // Calculate clip price (single spot price after seasonal adjustment)
 
@@ -1843,8 +1908,8 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     const seasonalIndex = parseFloat(row.querySelector('.seasonal-index').textContent || 1.0);
     const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
-    // Calculate price with seasonal index
-    const priceWithIndex = basePrice * seasonalIndex;
+    // Spec. ikainis (price-with-index) should always be 1.0
+    const priceWithIndex = 1.0;
     row.querySelector('.price-with-index').textContent = priceWithIndex.toFixed(2);
 
     // Calculate clip price (single spot price after seasonal adjustment)
@@ -2205,11 +2270,65 @@ $(document).on('click', '.btn-calendar-plus, .btn-calendar-minus', function() {
     // Update spot count in database - pass the row context
     updateSpotCountInDatabaseWithContext(stationId, timeSlot, selectedDate, newCount, isWeekendRow);
 
+    // Update seasonal index based on the calendar date's month
+    updateSeasonalIndexForDate(stationId, selectedDate, isWeekendRow);
+
     // Update the corresponding main spot count display - but only for the current row type
     console.log(`CALLING updateMainSpotCountDisplayForRowType with isWeekendRow=${isWeekendRow}`);
     updateMainSpotCountDisplayForRowType(stationId, timeSlot, selectedDate, isWeekendRow);
     console.log('==================== CALENDAR CLICK END ====================');
 });
+
+// Global variable to store captured seasonal indices
+let capturedSeasonalIndices = {};
+
+function getCapturedSeasonalIndex(stationId, month) {
+    // Look up captured seasonal index for station and month
+    const key = `${stationId}_${month}`;
+    return capturedSeasonalIndices[key] || null;
+}
+
+function updateSeasonalIndexForDate(stationId, selectedDate, isWeekendRow) {
+    console.log(`=== UPDATING SEASONAL INDEX FROM LIVE SEASONAL-ADJUSTMENTS: ${selectedDate} ===`);
+
+    // Extract month from selected date
+    const dateObj = new Date(selectedDate);
+    const month = dateObj.getMonth() + 1; // JavaScript months are 0-based, database expects 1-based
+
+    console.log(`Station ${stationId}, Date: ${selectedDate}, Month: ${month}, Weekend Row: ${isWeekendRow}`);
+
+    // Fetch LIVE seasonal index from seasonal-adjustments service
+    console.log(`Fetching LIVE seasonal index for station ${stationId}, month ${month}`);
+    fetch(`/api/seasonal-indices/station/${stationId}/month/${month}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log(`Received LIVE seasonal index data for station ${stationId}, month ${month}:`, data);
+            if (data.seasonal_index !== undefined) {
+                // Update ALL rows for this station with the LIVE seasonal index for this month
+                const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+                console.log(`Updating ${stationRows.length} rows for station ${stationId} with LIVE seasonal index ${data.seasonal_index}`);
+
+                stationRows.forEach(row => {
+                    const seasonalCell = row.querySelector('.seasonal-index');
+                    if (seasonalCell) {
+                        const oldValue = seasonalCell.textContent;
+                        seasonalCell.textContent = data.seasonal_index.toFixed(2);
+                        const timeSlot = row.getAttribute('data-time-slot');
+                        const isWeekend = row.getAttribute('data-is-weekend');
+                        console.log(`Updated seasonal index for station ${stationId}, time slot ${timeSlot} (${isWeekend === 'true' ? 'weekend' : 'weekday'} row) from ${oldValue} to ${data.seasonal_index.toFixed(2)} (LIVE from seasonal-adjustments)`);
+
+                        // Recalculate prices for this row with the new seasonal index
+                        calculateRowPrices(row);
+                    }
+                });
+            } else {
+                console.log(`No LIVE seasonal index found for station ${stationId}, month ${month}, keeping current values`);
+            }
+        })
+        .catch(error => {
+            console.error(`Error fetching LIVE seasonal index for station ${stationId}, month ${month}:`, error);
+        });
+}
 
 function updateMainSpotCountDisplay(stationId, timeSlot, selectedDate) {
     // Determine if the selected date is a weekend

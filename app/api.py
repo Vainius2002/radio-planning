@@ -263,6 +263,7 @@ def get_plan_captured_data(plan_id):
             'station_name': data.station.name,
             'time_slot': data.time_slot,
             'is_weekend': data.is_weekend,
+            'month': data.month,
             'grp': data.grp,
             'trp': data.trp,
             'affinity': data.affinity,
@@ -794,54 +795,68 @@ def update_station_rating(station_id):
 
 @api_bp.route('/seasonal-indices/station/<int:station_id>/month/<int:month>', methods=['GET'])
 def get_station_seasonal_index(station_id, month):
-    """Get seasonal index for a station based on its group and month"""
+    """Get seasonal index for a station from external seasonal-adjustments service"""
+    import requests
+
     try:
         # Get the station and its group
         station = RadioStation.query.get_or_404(station_id)
         group_id = station.group_id
+        print(f"Fetching seasonal index from external service: station_id={station_id}, group_id={group_id}, month={month}")
 
-        print(f"Looking for seasonal index: station_id={station_id}, group_id={group_id}, month={month}")
+        # Fetch seasonal index from external seasonal-adjustments service for this specific group
+        seasonal_adjustments_url = f"http://127.0.0.1:5006/groups/{group_id}/seasonal-adjustments"
 
-        # First try to get group-specific seasonal index
-        seasonal_index = SeasonalIndex.query.filter_by(
-            group_id=group_id,
-            month=month,
-            is_active=True
-        ).first()
+        try:
+            response = requests.get(seasonal_adjustments_url, timeout=10)
+            if response.status_code == 200:
+                # Parse HTML response to extract seasonal index for the specific month
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(response.text, 'html.parser')
+                print(f"Parsing HTML from seasonal-adjustments for group {group_id}, month {month}")
 
-        if seasonal_index:
-            print(f"Found group-specific seasonal index: {seasonal_index.index_value}")
+                # Look for input elements with class "index-value" and find the one for the specific month
+                # The structure appears to be: month number in <small> tags followed by input with index-value class
+                month_inputs = soup.find_all('input', class_='index-value')
+
+                # Find the input for the specific month (month inputs are in order 1-12)
+                if month_inputs and 1 <= month <= len(month_inputs):
+                    month_input = month_inputs[month - 1]  # month-1 because array is 0-indexed
+                    seasonal_index = float(month_input.get('value', 1.0))
+                    print(f"Found seasonal index {seasonal_index} for month {month} from group {group_id} seasonal-adjustments")
+                    return jsonify({
+                        'seasonal_index': seasonal_index,
+                        'source': 'seasonal_adjustments_service',
+                        'group_id': group_id,
+                        'month': month
+                    })
+
+                # If no specific month found, return default
+                print(f"No seasonal adjustment input found for month {month} in group {group_id}, returning default 1.0")
+                return jsonify({
+                    'seasonal_index': 1.0,
+                    'source': 'default',
+                    'group_id': group_id,
+                    'month': month
+                })
+            else:
+                print(f"Error fetching from seasonal-adjustments service: HTTP {response.status_code}")
+                # Fall back to default
+                return jsonify({
+                    'seasonal_index': 1.0,
+                    'source': 'default_fallback',
+                    'group_id': group_id,
+                    'month': month
+                })
+        except requests.exceptions.RequestException as e:
+            print(f"Network error fetching seasonal adjustments: {str(e)}")
+            # Fall back to default
             return jsonify({
-                'seasonal_index': seasonal_index.index_value,
-                'source': 'group_specific',
+                'seasonal_index': 1.0,
+                'source': 'default_fallback',
                 'group_id': group_id,
                 'month': month
             })
-
-        # Fall back to global seasonal index if no group-specific one exists
-        global_seasonal_index = SeasonalIndex.query.filter_by(
-            group_id=None,
-            month=month,
-            is_active=True
-        ).first()
-
-        if global_seasonal_index:
-            print(f"Found global seasonal index: {global_seasonal_index.index_value}")
-            return jsonify({
-                'seasonal_index': global_seasonal_index.index_value,
-                'source': 'global',
-                'group_id': None,
-                'month': month
-            })
-
-        # No seasonal index found, return default 1.0
-        print(f"No seasonal index found, returning default 1.0")
-        return jsonify({
-            'seasonal_index': 1.0,
-            'source': 'default',
-            'group_id': group_id,
-            'month': month
-        })
 
     except Exception as e:
         print(f"Error getting seasonal index: {str(e)}")

@@ -282,72 +282,97 @@ def capture_station_data_for_plan(plan):
     for station in plan.selected_stations:
         print(f"Capturing data for station {station.name} (ID: {station.id})")
 
-        # Get seasonal index for this station's group
-        seasonal_index = 1.0
-        seasonal = SeasonalIndex.query.filter_by(
-            group_id=station.group_id,
-            is_active=True
-        ).first()
-        if not seasonal:
-            # Fall back to global seasonal index
+        # Get all months within the plan's date range
+        start_month = plan.start_date.month
+        end_month = plan.end_date.month
+        start_year = plan.start_date.year
+        end_year = plan.end_date.year
+
+        # Generate list of months within the plan's date range
+        months_in_plan = []
+        current_date = plan.start_date.replace(day=1)  # Start from first day of start month
+        while current_date <= plan.end_date:
+            months_in_plan.append(current_date.month)
+            # Move to next month
+            if current_date.month == 12:
+                current_date = current_date.replace(year=current_date.year + 1, month=1)
+            else:
+                current_date = current_date.replace(month=current_date.month + 1)
+
+        print(f"Plan covers months: {months_in_plan}")
+
+        # Capture data for each month, time slot, and weekend combination
+        for month in months_in_plan:
+            # Get seasonal index for this station and month
+            seasonal_index = 1.0
             seasonal = SeasonalIndex.query.filter_by(
-                group_id=None,
+                group_id=station.group_id,
+                month=month,
                 is_active=True
             ).first()
-        if seasonal:
-            seasonal_index = seasonal.index_value
-
-        # Capture data for weekday and weekend versions of each time slot
-        for time_slot in time_slots:
-            for is_weekend in [False, True]:
-                # Get current ratings
-                rating = StationRating.query.filter_by(
-                    station_id=station.id,
-                    time_slot=time_slot,
-                    target_audience=plan.target_audience,
-                    is_weekend=is_weekend,
+            if not seasonal:
+                # Fall back to global seasonal index for this month
+                seasonal = SeasonalIndex.query.filter_by(
+                    group_id=None,
+                    month=month,
                     is_active=True
                 ).first()
+            if seasonal:
+                seasonal_index = seasonal.index_value
 
-                # Get current price (try zone pricing first)
-                base_price = 0
-                clip_duration = 30  # Default duration
-                if plan.clips.count() > 0:
-                    clip_duration = plan.clips.first().duration
+            print(f"Month {month}: Seasonal index = {seasonal_index}")
 
-                # Try zone pricing first
-                zone = get_zone_for_time_slot(time_slot, is_weekend)
-                zone_price = StationZonePrice.query.filter_by(
-                    station_id=station.id,
-                    zone=zone,
-                    is_weekend=is_weekend
-                ).all()
+            for time_slot in time_slots:
+                for is_weekend in [False, True]:
+                    # Get current ratings
+                    rating = StationRating.query.filter_by(
+                        station_id=station.id,
+                        time_slot=time_slot,
+                        target_audience=plan.target_audience,
+                        is_weekend=is_weekend,
+                        is_active=True
+                    ).first()
 
-                # Find best matching duration
-                best_zone_price = None
-                for zp in zone_price:
-                    zp_duration = int(zp.duration.replace('s', ''))
-                    if zp_duration >= clip_duration:
-                        if best_zone_price is None or zp_duration < int(best_zone_price.duration.replace('s', '')):
-                            best_zone_price = zp
+                    # Get current price (try zone pricing first)
+                    base_price = 0
+                    clip_duration = 30  # Default duration
+                    if plan.clips.count() > 0:
+                        clip_duration = plan.clips.first().duration
 
-                if best_zone_price:
-                    base_price = best_zone_price.price
+                    # Try zone pricing first
+                    zone = get_zone_for_time_slot(time_slot, is_weekend)
+                    zone_price = StationZonePrice.query.filter_by(
+                        station_id=station.id,
+                        zone=zone,
+                        is_weekend=is_weekend
+                    ).all()
 
-                # Create captured data record
-                captured_data = PlanStationData(
-                    plan_id=plan.id,
-                    station_id=station.id,
-                    time_slot=time_slot,
-                    is_weekend=is_weekend,
-                    grp=rating.grp if rating else 0,
-                    trp=rating.trp if rating else 0,
-                    affinity=rating.affinity if rating else 0,
-                    base_price=base_price,
-                    seasonal_index=seasonal_index
-                )
+                    # Find best matching duration
+                    best_zone_price = None
+                    for zp in zone_price:
+                        zp_duration = int(zp.duration.replace('s', ''))
+                        if zp_duration >= clip_duration:
+                            if best_zone_price is None or zp_duration < int(best_zone_price.duration.replace('s', '')):
+                                best_zone_price = zp
 
-                db.session.add(captured_data)
+                    if best_zone_price:
+                        base_price = best_zone_price.price
+
+                    # Create captured data record with month-specific seasonal index
+                    captured_data = PlanStationData(
+                        plan_id=plan.id,
+                        station_id=station.id,
+                        time_slot=time_slot,
+                        is_weekend=is_weekend,
+                        month=month,
+                        grp=rating.grp if rating else 0,
+                        trp=rating.trp if rating else 0,
+                        affinity=rating.affinity if rating else 0,
+                        base_price=base_price,
+                        seasonal_index=seasonal_index
+                    )
+
+                    db.session.add(captured_data)
 
     print(f"Captured data for {len(plan.selected_stations)} stations across {len(time_slots)} time slots (weekday + weekend)")
 
