@@ -243,11 +243,7 @@
                                 <td>I-V</td>
                                 <td>0</td>
                                 <td class="spot-count">
-                                    <div class="spot-count-controls">
-                                        <button class="btn-spot-control btn-minus" data-action="minus" title="Sumažinti">-</button>
-                                        <span class="spot-number">0</span>
-                                        <button class="btn-spot-control btn-plus" data-action="plus" title="Padidinti">+</button>
-                                    </div>
+                                    <span class="spot-number">0</span>
                                 </td>
                                 <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
@@ -262,13 +258,20 @@
                                 <td class="total-after-discount">0</td>
                                 <td class="our-discount-percent">{{ plan.our_discount }}%</td>
                                 <td class="client-discount-percent">{{ plan.client_discount }}%</td>
-                                <!-- Calendar cells for each date - only weekdays clickable -->
+                                <!-- Calendar cells for each date with spot controls -->
                                 {% for date in calendar_data.dates %}
-                                    {% set is_weekend = date.weekday() >= 5 %}
-                                    <td class="calendar-cell {% if is_weekend %}weekend-cell{% endif %}"
+                                    {% set is_weekend_date = date.weekday() >= 5 %}
+                                    {% set should_show = (is_weekend_date and time_slot) or (not is_weekend_date and time_slot) %}
+                                    <td class="calendar-spot-cell {% if is_weekend_date %}weekend-date{% else %}weekday-date{% endif %}"
                                         data-date="{{ date.isoformat() }}"
-                                        {% if not is_weekend %}onclick="toggleSpot(this)"{% endif %}>
-                                        <span class="spot-indicator"></span>
+                                        data-station-id="{{ station.id }}"
+                                        data-time-slot="{{ time_slot }}"
+                                        data-row-type="weekday">
+                                        <div class="calendar-spot-controls">
+                                            <button class="btn-calendar-minus" data-action="minus" title="Sumažinti">-</button>
+                                            <span class="calendar-spot-number">0</span>
+                                            <button class="btn-calendar-plus" data-action="plus" title="Padidinti">+</button>
+                                        </div>
                                     </td>
                                 {% endfor %}
                             </tr>
@@ -282,11 +285,7 @@
                                 <td>VI-VII</td>
                                 <td>0</td>
                                 <td class="spot-count">
-                                    <div class="spot-count-controls">
-                                        <button class="btn-spot-control btn-minus" data-action="minus" title="Sumažinti">-</button>
-                                        <span class="spot-number">0</span>
-                                        <button class="btn-spot-control btn-plus" data-action="plus" title="Padidinti">+</button>
-                                    </div>
+                                    <span class="spot-number">0</span>
                                 </td>
                                 <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
@@ -301,13 +300,19 @@
                                 <td class="total-after-discount">0</td>
                                 <td class="our-discount-percent">{{ plan.our_discount }}%</td>
                                 <td class="client-discount-percent">{{ plan.client_discount }}%</td>
-                                <!-- Calendar cells for each date - only weekends clickable -->
+                                <!-- Calendar cells for each date with spot controls -->
                                 {% for date in calendar_data.dates %}
-                                    {% set is_weekend = date.weekday() >= 5 %}
-                                    <td class="calendar-cell {% if is_weekend %}weekend-cell{% endif %}"
+                                    {% set is_weekend_date = date.weekday() >= 5 %}
+                                    <td class="calendar-spot-cell {% if is_weekend_date %}weekend-date{% else %}weekday-date{% endif %}"
                                         data-date="{{ date.isoformat() }}"
-                                        {% if is_weekend %}onclick="toggleSpot(this)"{% endif %}>
-                                        <span class="spot-indicator"></span>
+                                        data-station-id="{{ station.id }}"
+                                        data-time-slot="{{ time_slot }}"
+                                        data-row-type="weekend">
+                                        <div class="calendar-spot-controls">
+                                            <button class="btn-calendar-minus" data-action="minus" title="Sumažinti">-</button>
+                                            <span class="calendar-spot-number">0</span>
+                                            <button class="btn-calendar-plus" data-action="plus" title="Padidinti">+</button>
+                                        </div>
                                     </td>
                                 {% endfor %}
                             </tr>
@@ -502,6 +507,188 @@ tr:not(.weekend-row) .weekend-cell {
     font-weight: bold;
     font-size: 14px;
 }
+
+/* Calendar spot controls */
+.calendar-spot-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    justify-content: center;
+    min-width: 50px;
+}
+
+.btn-calendar-plus, .btn-calendar-minus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-calendar-plus {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.btn-calendar-plus:hover {
+    background: #218838;
+    border-color: #1e7e34;
+}
+
+.btn-calendar-minus {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-calendar-minus:hover {
+    background: #c82333;
+    border-color: #bd2130;
+}
+
+.calendar-spot-number {
+    min-width: 12px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 10px;
+    padding: 0 2px;
+}
+
+.calendar-spot-cell {
+    padding: 2px;
+    text-align: center;
+    min-width: 50px;
+    border: 1px solid #ddd;
+    background: white;
+}
+
+/* Horizontal scrolling for calendar */
+.table-responsive {
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: 100%;
+    min-width: 1500px; /* Ensure table has enough space */
+}
+
+.planning-table {
+    min-width: 1800px; /* Much wider to accommodate calendar */
+    table-layout: auto; /* Let columns size naturally */
+}
+
+/* Fixed widths for main columns to prevent squeezing */
+.station-header, .time-header, .weekday-header { min-width: 120px; }
+.spec-header, .count-header, .duration-header { min-width: 80px; }
+.grp-header, .trp-header, .affinity-header { min-width: 70px; }
+.trp-price-header, .base-price-header { min-width: 80px; }
+.seasonal-header, .price-with-index-header { min-width: 90px; }
+.final-price-header, .total-before-header, .total-after-header { min-width: 100px; }
+.our-discount-header, .client-discount-header { min-width: 90px; }
+
+/* Calendar section gets remaining space */
+.calendar-date-header {
+    min-width: 80px;
+    width: 80px;
+    background: white;
+    border: 1px solid #ddd;
+    text-align: center;
+    padding: 6px 4px;
+    position: relative;
+}
+
+.calendar-spot-cell {
+    min-width: 80px;
+    width: 80px;
+    padding: 4px;
+    text-align: center;
+    border: 1px solid #ddd;
+    background: white;
+    vertical-align: middle;
+}
+
+.date-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 11px;
+    line-height: 1.2;
+    transform: none;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+}
+
+.date-day {
+    font-weight: bold;
+    font-size: 13px;
+    color: #333;
+}
+
+.date-month {
+    color: #666;
+    font-size: 10px;
+}
+
+/* Calendar controls - same size as main spot controls */
+.calendar-spot-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+    min-width: 60px;
+}
+
+.btn-calendar-plus, .btn-calendar-minus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-calendar-plus {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.btn-calendar-plus:hover {
+    background: #218838;
+    border-color: #1e7e34;
+}
+
+.btn-calendar-minus {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-calendar-minus:hover {
+    background: #c82333;
+    border-color: #bd2130;
+}
+
+.calendar-spot-number {
+    min-width: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+}
 </style>
 {% endblock %}
 
@@ -582,27 +769,34 @@ function loadSpotCounts() {
                 console.log('Found spots in API, updating display...');
 
                 data.spots.forEach(spot => {
-                    // Determine if this spot is for a weekend based on the date
-                    const spotDate = new Date(spot.date);
-                    const dayOfWeek = spotDate.getDay();
-                    // JavaScript: Sunday = 0, Monday = 1, ..., Saturday = 6
-                    // Python weekday(): Monday = 0, Tuesday = 1, ..., Sunday = 6
-                    // Python uses >= 5 for weekend (Saturday=5, Sunday=6)
-                    // So we need to match Python's logic: convert JS day to Python weekday
-                    const pythonWeekday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert JS to Python weekday
-                    const isWeekend = pythonWeekday >= 5; // Match Python's weekend calculation
+                    // CRITICAL FIX: Always use the database's is_weekend_row field instead of date-based detection
+                    // This ensures spots are loaded into the correct row type (weekday I-V vs weekend VI-VII)
+                    const spotIsWeekendRow = spot.hasOwnProperty('is_weekend_row') ? spot.is_weekend_row : false;
 
-                    console.log(`Spot date: ${spot.date}, dayOfWeek: ${dayOfWeek}, pythonWeekday: ${pythonWeekday}, isWeekend: ${isWeekend}`);
+                    console.log(`Spot date: ${spot.date}, using is_weekend_row: ${spotIsWeekendRow}`);
 
                     // Find the SPECIFIC row for this station/time slot/weekend status
-                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${isWeekend}"]`);
-                    console.log(`Found ${rows.length} rows for station ${spot.station_id}, time ${spot.time_slot}, weekend=${isWeekend}`);
+                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${spotIsWeekendRow}"]`);
+                    console.log(`Found ${rows.length} rows for station ${spot.station_id}, time ${spot.time_slot}, weekend=${spotIsWeekendRow} (using is_weekend_row from database)`);
 
                     rows.forEach(row => {
                         const spotNumberElement = row.querySelector('.spot-number');
                         if (spotNumberElement) {
                             console.log(`Updating spot count from ${spotNumberElement.textContent} to ${spot.spot_count}`);
                             spotNumberElement.textContent = spot.spot_count;
+
+                            // Also update the corresponding calendar cell IN THIS SPECIFIC ROW with matching row type
+                            const rowTypeToMatch = spotIsWeekendRow ? 'weekend' : 'weekday';
+                            const calendarCell = row.querySelector(
+                                `.calendar-spot-cell[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-date="${spot.date}"][data-row-type="${rowTypeToMatch}"]`
+                            );
+                            if (calendarCell) {
+                                const calendarSpotNumber = calendarCell.querySelector('.calendar-spot-number');
+                                if (calendarSpotNumber) {
+                                    console.log(`Updating calendar spot count for ${spot.date} to ${spot.spot_count} in ${spotIsWeekendRow ? 'weekend' : 'weekday'} row`);
+                                    calendarSpotNumber.textContent = spot.spot_count;
+                                }
+                            }
 
                             // Recalculate TRP price and other calculations for this row
                             console.log(`Calling calculateRowPrices for station ${spot.station_id}, time ${spot.time_slot}`);
@@ -1400,13 +1594,11 @@ function startPersistentSpotLoader() {
                 let totalSpots = data.spots.length;
 
                 data.spots.forEach(spot => {
-                    // Find the row for this spot
-                    const spotDate = new Date(spot.date);
-                    const dayOfWeek = spotDate.getDay();
-                    const pythonWeekday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                    const isWeekend = pythonWeekday >= 5;
+                    // CRITICAL FIX: Use the database's is_weekend_row field instead of date-based detection
+                    // This ensures spots are loaded into the correct row type (weekday I-V vs weekend VI-VII)
+                    const spotIsWeekendRow = spot.hasOwnProperty('is_weekend_row') ? spot.is_weekend_row : false;
 
-                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${isWeekend}"]`);
+                    const rows = document.querySelectorAll(`tr[data-station-id="${spot.station_id}"][data-time-slot="${spot.time_slot}"][data-is-weekend="${spotIsWeekendRow}"]`);
 
                     if (rows.length > 0) {
                         const row = rows[0];
@@ -1780,8 +1972,8 @@ function initializeDragToScroll() {
     });
 }
 
-// Spot count control buttons
-$(document).on('click', '.btn-spot-control', function() {
+// Spot count control buttons - DISABLED: Now using calendar controls only
+/*$(document).on('click', '.btn-spot-control', function() {
     const action = $(this).data('action');
     const row = $(this).closest('tr');
     const spotNumberElement = $(this).siblings('.spot-number');
@@ -1884,7 +2076,7 @@ $(document).on('click', '.btn-spot-control', function() {
 
     // Update spot count in database
     updateSpotCountInDatabase(stationId, timeSlot, selectedDate, newCount, row);
-});
+});*/
 
 function updateSpotCountInDatabase(stationId, timeSlot, date, spotCount, row) {
     // Validate required fields before sending
@@ -1966,6 +2158,216 @@ function recalculateRowTotals(row) {
 
     // Recalculate station totals
     updateAllStationTotals();
+}
+
+// Calendar spot control buttons
+$(document).on('click', '.btn-calendar-plus, .btn-calendar-minus', function() {
+    console.log('==================== CALENDAR CLICK START ====================');
+    const action = $(this).data('action');
+    const calendarCell = $(this).closest('.calendar-spot-cell');
+    const spotNumberElement = $(this).siblings('.calendar-spot-number');
+    const currentCount = parseInt(spotNumberElement.text()) || 0;
+
+    // Debug: Check what row type this calendar cell has
+    const cellRowType = calendarCell.attr('data-row-type');
+    console.log('Calendar cell row type:', cellRowType);
+
+    let newCount = currentCount;
+    if (action === 'plus') {
+        newCount = currentCount + 1;
+    } else if (action === 'minus') {
+        newCount = Math.max(0, currentCount - 1);
+    }
+
+    // Update the display immediately
+    spotNumberElement.text(newCount);
+
+    // Get calendar cell data
+    const stationId = calendarCell.attr('data-station-id');
+    const timeSlot = calendarCell.attr('data-time-slot');
+    const selectedDate = calendarCell.attr('data-date');
+
+    // Get the row context to determine if this is a weekday or weekend row
+    const parentRow = calendarCell.closest('tr');
+    const isWeekendRow = parentRow.attr('data-is-weekend') === 'true';
+    const rowType = parentRow.find('td:nth-child(3)').text(); // Should be "I-V" or "VI-VII"
+
+    console.log('Calendar control clicked:', {
+        action: action,
+        stationId: stationId,
+        timeSlot: timeSlot,
+        selectedDate: selectedDate,
+        newCount: newCount,
+        rowType: rowType,
+        isWeekendRow: isWeekendRow
+    });
+
+    // Update spot count in database - pass the row context
+    updateSpotCountInDatabaseWithContext(stationId, timeSlot, selectedDate, newCount, isWeekendRow);
+
+    // Update the corresponding main spot count display - but only for the current row type
+    console.log(`CALLING updateMainSpotCountDisplayForRowType with isWeekendRow=${isWeekendRow}`);
+    updateMainSpotCountDisplayForRowType(stationId, timeSlot, selectedDate, isWeekendRow);
+    console.log('==================== CALENDAR CLICK END ====================');
+});
+
+function updateMainSpotCountDisplay(stationId, timeSlot, selectedDate) {
+    // Determine if the selected date is a weekend
+    const dateObj = new Date(selectedDate);
+    const dayOfWeek = dateObj.getDay();
+    // JavaScript: Sunday = 0, Monday = 1, ..., Saturday = 6
+    // Weekend: Saturday = 6, Sunday = 0
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+    console.log(`Calendar date: ${selectedDate}, dayOfWeek: ${dayOfWeek}, isWeekend: ${isWeekend}`);
+
+    // CRITICAL FIX: Use the ROW's weekend status, NOT the date's weekend status
+    // This ensures that clicking any date in a weekend row (VI-VII) only affects the weekend row
+    const mainRow = $(`.planning-row[data-station-id="${stationId}"][data-time-slot="${timeSlot}"][data-is-weekend="${isWeekendRow}"]`);
+
+    console.log(`Looking for row: station=${stationId}, time=${timeSlot}, weekend=${isWeekendRow} (row-based, not date-based: ${isWeekend})`);
+    console.log(`Found ${mainRow.length} matching rows`);
+
+    if (mainRow.length > 0) {
+        // Calculate total spots for this station/time slot from calendar cells that match the row type
+        let totalSpots = 0;
+        $(`.calendar-spot-cell[data-station-id="${stationId}"][data-time-slot="${timeSlot}"]`).each(function() {
+            const cellDate = new Date($(this).attr('data-date'));
+            const cellDayOfWeek = cellDate.getDay();
+            const cellIsWeekend = (cellDayOfWeek === 0 || cellDayOfWeek === 6);
+
+            // Only count spots from dates that match this row type (weekend vs weekday)
+            if (cellIsWeekend === isWeekend) {
+                totalSpots += parseInt($(this).find('.calendar-spot-number').text()) || 0;
+            }
+        });
+
+        // Update the main spot count display
+        mainRow.find('.spot-number').text(totalSpots);
+
+        // Show which row was updated
+        const rowType = mainRow.find('td:nth-child(3)').text(); // Should be "I-V" or "VI-VII"
+        console.log(`Updated row with type "${rowType}" for station ${stationId}, slot ${timeSlot}: ${totalSpots} spots`);
+
+        // Recalculate row totals
+        recalculateRowTotals(mainRow);
+    }
+}
+
+function updateMainSpotCountDisplayForRowType(stationId, timeSlot, selectedDate, isWeekendRow) {
+    // Use the row type passed from the calendar click, don't try to determine from date
+    console.log(`====== UPDATE MAIN DISPLAY: ${isWeekendRow ? 'WEEKEND' : 'WEEKDAY'} ROW ======`);
+    console.log(`Station: ${stationId}, Time: ${timeSlot}, Date: ${selectedDate}`);
+
+    // Find ALL rows for debugging
+    const allRows = $(`.planning-row[data-station-id="${stationId}"][data-time-slot="${timeSlot}"]`);
+    console.log(`Total rows found for this station/time: ${allRows.length}`);
+    allRows.each(function() {
+        const rowIsWeekend = $(this).attr('data-is-weekend');
+        const rowType = $(this).find('td:nth-child(3)').text();
+        console.log(`  - Row: is-weekend="${rowIsWeekend}", type="${rowType}"`);
+    });
+
+    // Find the specific row type
+    const mainRow = $(`.planning-row[data-station-id="${stationId}"][data-time-slot="${timeSlot}"][data-is-weekend="${isWeekendRow}"]`);
+
+    console.log(`Looking for row with: data-is-weekend="${isWeekendRow}"`);
+    console.log(`Found ${mainRow.length} matching rows`);
+
+    if (mainRow.length > 0) {
+        // Calculate total spots for this station/time slot from calendar cells that match the row type
+        let totalSpots = 0;
+
+        // Only look at calendar cells that belong to THIS specific row type
+        const rowTypeToMatch = isWeekendRow ? 'weekend' : 'weekday';
+        console.log(`Looking for calendar cells with data-row-type="${rowTypeToMatch}"`);
+
+        // First, let's see ALL calendar cells in this row
+        const allCalendarCells = mainRow.find('.calendar-spot-cell');
+        console.log(`Total calendar cells in row: ${allCalendarCells.length}`);
+
+        // Now find matching ones
+        const matchingCells = mainRow.find(`.calendar-spot-cell[data-row-type="${rowTypeToMatch}"]`);
+        console.log(`Calendar cells matching row type "${rowTypeToMatch}": ${matchingCells.length}`);
+
+        matchingCells.each(function() {
+            const cellValue = parseInt($(this).find('.calendar-spot-number').text()) || 0;
+            const cellDate = $(this).attr('data-date');
+            const cellRowType = $(this).attr('data-row-type');
+            if (cellValue > 0) {
+                console.log(`  - Cell: date=${cellDate}, row-type=${cellRowType}, value=${cellValue}`);
+            }
+            totalSpots += cellValue;
+        });
+
+        console.log(`TOTAL SPOTS CALCULATED: ${totalSpots}`);
+
+        // Update the main spot count display
+        const spotNumberElement = mainRow.find('.spot-number');
+        const oldValue = spotNumberElement.text();
+        spotNumberElement.text(totalSpots);
+
+        // Show which row was updated
+        const rowType = mainRow.find('td:nth-child(3)').text(); // Should be "I-V" or "VI-VII"
+        console.log(`UPDATED ROW: type="${rowType}", old value=${oldValue}, new value=${totalSpots}`);
+
+        // Recalculate row totals
+        recalculateRowTotals(mainRow);
+        console.log('====== UPDATE COMPLETE ======');
+    } else {
+        console.log('NO MATCHING ROW FOUND!');
+    }
+}
+
+function updateSpotCountInDatabaseWithContext(stationId, timeSlot, date, spotCount, isWeekendRow) {
+    // Validate required fields before sending
+    console.log('=== DEBUGGING API CALL DATA WITH CONTEXT ===');
+    console.log('stationId:', stationId, '(type:', typeof stationId, ')');
+    console.log('timeSlot:', timeSlot, '(type:', typeof timeSlot, ')');
+    console.log('date:', date, '(type:', typeof date, ')');
+    console.log('spotCount:', spotCount, '(type:', typeof spotCount, ')');
+    console.log('isWeekendRow:', isWeekendRow, '(type:', typeof isWeekendRow, ')');
+
+    if (!stationId) {
+        alert('Error: Station ID is missing');
+        return;
+    }
+    if (!timeSlot) {
+        alert('Error: Time slot is missing');
+        return;
+    }
+    if (!date) {
+        alert('Error: Date is missing');
+        return;
+    }
+
+    console.log('Updating spot count with context:', {
+        station_id: parseInt(stationId),
+        time_slot: timeSlot,
+        date: date,
+        spot_count: parseInt(spotCount),
+        is_weekend_row: isWeekendRow
+    });
+
+    $.ajax({
+        url: `/api/plans/{{ plan.id }}/spots/update-count`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            station_id: parseInt(stationId),
+            time_slot: timeSlot,
+            date: date,
+            spot_count: parseInt(spotCount),
+            is_weekend_row: isWeekendRow  // Add row context
+        }),
+        success: function(response) {
+            console.log('Success:', response);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error updating spot count:', xhr.responseText || error);
+            alert('Error updating spot count: ' + (xhr.responseText || error));
+        }
+    });
 }
 
 </script>

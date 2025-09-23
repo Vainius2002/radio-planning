@@ -158,6 +158,7 @@ class RadioSpot(db.Model):
     time_slot = db.Column(db.String(20), nullable=False)
     weekday = db.Column(db.String(20))
     special_position = db.Column(db.String(100))
+    is_weekend_row = db.Column(db.Boolean, default=False)  # Track if this spot belongs to weekend row (VI-VII)
 
     # Counts and durations
     spot_count = db.Column(db.Integer, default=1)

@@ -495,26 +495,35 @@ def debug_data():
 
 def generate_calendar_data(plan):
     """Generate calendar data structure for the plan"""
-    calendar = {}
-    current_date = plan.start_date
+    from datetime import timedelta
 
+    calendar_data = {
+        'dates': [],
+        'spots': {}
+    }
+
+    # Generate list of dates for the template
+    current_date = plan.start_date
     while current_date <= plan.end_date:
-        calendar[current_date] = {}
-        for slot in generate_time_slots():
-            calendar[current_date][slot] = []
+        calendar_data['dates'].append(current_date)
         current_date += timedelta(days=1)
 
     # Fill with spots
     for spot in plan.spots:
-        if spot.date in calendar and spot.time_slot in calendar[spot.date]:
-            calendar[spot.date][spot.time_slot].append({
-                'station': spot.station.name,
-                'count': spot.spot_count,
-                'clip': spot.clip.name if spot.clip else '',
-                'price': spot.final_price
-            })
+        date_key = spot.date.isoformat()
+        slot_key = f"{spot.station_id}_{spot.time_slot}"
 
-    return calendar
+        if slot_key not in calendar_data['spots']:
+            calendar_data['spots'][slot_key] = {}
+
+        calendar_data['spots'][slot_key][date_key] = {
+            'station': spot.station.name,
+            'count': spot.spot_count,
+            'clip': spot.clip.name if spot.clip else '',
+            'price': spot.final_price
+        }
+
+    return calendar_data
 
 def generate_full_calendar(plan):
     """Generate full calendar with all metrics"""

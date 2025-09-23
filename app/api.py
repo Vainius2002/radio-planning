@@ -241,7 +241,8 @@ def get_plan(plan_id):
                 'spot_count': spot.spot_count,
                 'grp': spot.grp,
                 'trp': spot.trp,
-                'final_price': spot.final_price
+                'final_price': spot.final_price,
+                'is_weekend_row': spot.is_weekend_row
             } for spot in plan.spots
         ]
     }
@@ -324,8 +325,9 @@ def update_spot_count(plan_id):
         time_slot = data.get('time_slot')
         date = data.get('date')
         new_count = data.get('spot_count', 0)
+        is_weekend_row = data.get('is_weekend_row', False)
 
-        print(f"Parsed - Station: {station_id} (type: {type(station_id)}), Time: {time_slot}, Date: {date}, Count: {new_count}")
+        print(f"Parsed - Station: {station_id} (type: {type(station_id)}), Time: {time_slot}, Date: {date}, Count: {new_count}, Weekend Row: {is_weekend_row}")
 
         if not all([station_id, time_slot, date]):
             print("ERROR: Missing required fields")
@@ -360,7 +362,8 @@ def update_spot_count(plan_id):
             plan_id=plan_id,
             station_id=station_id,
             time_slot=time_slot,
-            date=spot_date
+            date=spot_date,
+            is_weekend_row=is_weekend_row
         ).first()
         print(f"Found existing spot: {spot}")
 
@@ -406,7 +409,8 @@ def update_spot_count(plan_id):
                 time_slot=time_slot,
                 spot_count=new_count,
                 clip_duration=clip_duration,
-                weekday=spot_date.strftime('%A')
+                weekday=spot_date.strftime('%A'),
+                is_weekend_row=is_weekend_row
             )
 
             with open('/tmp/radio_debug.log', 'a') as f:
