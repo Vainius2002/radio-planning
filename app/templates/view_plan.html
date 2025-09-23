@@ -211,8 +211,6 @@
                             <!-- Rating columns -->
                             <th class="grp-header">GRP</th>
                             <th class="trp-header">TRP</th>
-                            <th class="total-grp-header">Viso<br>GRP</th>
-                            <th class="total-trp-header">Viso<br>TRP</th>
                             <th class="affinity-header">Affinity</th>
                             <!-- Pricing columns -->
                             <th class="trp-price-header">1 sec TRP<br>kaina</th>
@@ -255,8 +253,6 @@
                                 <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
                                 <td class="trp">0</td>
-                                <td class="total-grp">0</td>
-                                <td class="total-trp">0</td>
                                 <td class="affinity">0</td>
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
@@ -297,8 +293,6 @@
                                 <td class="clip-duration">{% set clips_list = plan.clips.all() %}{% if clips_list and clips_list|length > 0 %}{{ clips_list[0].duration }}{% else %}30{% endif %}</td>
                                 <td class="grp">0</td>
                                 <td class="trp">0</td>
-                                <td class="total-grp">0</td>
-                                <td class="total-trp">0</td>
                                 <td class="affinity">0</td>
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
@@ -322,33 +316,6 @@
                             </tr>
                         {% endfor %}
 
-                        <!-- Station totals row -->
-                        <tr class="station-totals" data-station-id="{{ station.id }}" style="background-color: #fff3cd; font-weight: bold;">
-                            <td colspan="2" style="text-align: right; padding-right: 10px;">VISO:</td>
-                            <td></td>
-                            <td></td>
-                            <td class="station-total-spots" id="station-{{ station.id }}-total-spots">0</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td class="station-total-grp" id="station-{{ station.id }}-total-grp">0</td>
-                            <td class="station-total-trp" id="station-{{ station.id }}-total-trp">0</td>
-                            <td class="station-total-affinity" id="station-{{ station.id }}-total-affinity">0</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td class="station-total-before-discount" id="station-{{ station.id }}-total-before-discount">0</td>
-                            <td class="station-total-after-discount" id="station-{{ station.id }}-total-after-discount">0</td>
-                            <td></td>
-                            <td></td>
-                            <!-- Empty calendar cells for totals row -->
-                            {% for date in calendar_data.dates %}
-                                <td></td>
-                            {% endfor %}
-                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -362,20 +329,13 @@
 {% block extra_css %}
 <style>
 /* Ensure GRP/TRP cells can display decimal values properly */
-.grp, .trp, .total-grp, .total-trp, .affinity {
+.grp, .trp, .affinity {
     min-width: 70px;
     white-space: nowrap;
     text-align: center;
     font-family: monospace;
 }
 
-/* Ensure station totals cells also display properly */
-.station-total-grp, .station-total-trp, .station-total-affinity {
-    min-width: 70px;
-    white-space: nowrap;
-    text-align: center;
-    font-family: monospace;
-}
 
 /* Improve overall table cell spacing */
 .radio-planning-table td {
@@ -537,7 +497,6 @@ function initializePage() {
         // After loading existing spots, load captured station data
         setTimeout(() => {
             loadCapturedStationData();
-            updateAllStationTotals();
 
             // Load spot counts AFTER all other initialization is complete
             setTimeout(loadSpotCounts, 200);
@@ -825,9 +784,6 @@ function loadSavedSpotRatings() {
                 });
 
                 // Update all totals after loading values
-                setTimeout(() => {
-                    updateAllStationTotals();
-                }, 100);
             } else {
                 console.log('No spots found in plan - will only show values when spots are added');
             }
@@ -1012,8 +968,6 @@ function calculateRowTotalsOnly(row) {
     });
 
     row.querySelector('.spot-number').textContent = totalSpots;
-    row.querySelector('.total-grp').textContent = (totalSpots * parseFloat(row.querySelector('.grp').textContent || 0)).toFixed(2);
-    row.querySelector('.total-trp').textContent = (totalSpots * parseFloat(row.querySelector('.trp').textContent || 0)).toFixed(2);
 
     // Recalculate prices based on new spot count
     calculateRowPrices(row);
@@ -1024,7 +978,6 @@ function updateRowTotals(row) {
 
     // Update station totals after updating row totals
     const stationId = row.dataset.stationId;
-    updateStationTotals(stationId);
 
     // Update calendar view
     updateCalendarSpotCounts();
@@ -1134,75 +1087,7 @@ function updateCalendarSpotCounts() {
     });
 }
 
-function updateStationTotals(stationId) {
-    // Use a small timeout to ensure all DOM updates have completed
-    setTimeout(() => {
-        const stationRows = document.querySelectorAll(`.station-${stationId}-row`);
 
-        console.log(`updateStationTotals: Looking for station ${stationId}, found ${stationRows.length} rows`);
-
-    let totalSpots = 0;
-    let sumOfGrpValues = 0;  // Sum of all total-grp values
-    let sumOfTrpValues = 0;  // Sum of all total-trp values
-    let sumOfAffinityValues = 0;  // Sum of all affinity values
-    let totalBeforeDiscount = 0;
-    let totalAfterDiscount = 0;
-
-    stationRows.forEach((row, index) => {
-        // Get the spot count for this row (klipu skaicius)
-        const spotCount = parseInt(row.querySelector('.spot-count')?.textContent) || 0;
-
-        // Get the TOTAL GRP and TRP values from the total columns (these are already calculated as spots × rating)
-        const totalGrpValue = parseFloat(row.querySelector('.total-grp')?.textContent) || 0;
-        const totalTrpValue = parseFloat(row.querySelector('.total-trp')?.textContent) || 0;
-
-        // Get the affinity value directly from the cell
-        const affinityValue = parseFloat(row.querySelector('.affinity')?.textContent) || 0;
-
-        // Get price totals (viso kaina iki nuolaidos, viso kaina po nuolaidos)
-        const beforeDiscount = parseFloat(row.querySelector('.total-before-discount')?.textContent) || 0;
-        const afterDiscount = parseFloat(row.querySelector('.total-after-discount')?.textContent) || 0;
-
-        // Debug: log what values we're reading
-        console.log(`Row ${index}: spots=${spotCount}, totalGrp=${totalGrpValue}, totalTrp=${totalTrpValue}, affinity=${affinityValue}, beforeDiscount=${beforeDiscount}, afterDiscount=${afterDiscount}`);
-
-        // Sum up all the values
-        totalSpots += spotCount;
-        sumOfGrpValues += totalGrpValue;
-        sumOfTrpValues += totalTrpValue;
-        sumOfAffinityValues += affinityValue;
-        totalBeforeDiscount += beforeDiscount;
-        totalAfterDiscount += afterDiscount;
-    });
-
-    // Update station total cells in the existing VISO row
-    // Display the sum of all values
-    console.log(`Station ${stationId} totals: Spots=${totalSpots}, GRP=${sumOfGrpValues}, TRP=${sumOfTrpValues}, Affinity=${sumOfAffinityValues}, BeforeDiscount=${totalBeforeDiscount}, AfterDiscount=${totalAfterDiscount}`);
-
-    document.getElementById(`station-${stationId}-total-spots`).textContent = totalSpots;
-    document.getElementById(`station-${stationId}-total-grp`).textContent = sumOfGrpValues.toFixed(2);
-    document.getElementById(`station-${stationId}-total-trp`).textContent = sumOfTrpValues.toFixed(2);
-    document.getElementById(`station-${stationId}-total-affinity`).textContent = sumOfAffinityValues.toFixed(2);
-    document.getElementById(`station-${stationId}-total-before-discount`).textContent = totalBeforeDiscount.toFixed(2);
-    document.getElementById(`station-${stationId}-total-after-discount`).textContent = totalAfterDiscount.toFixed(2);
-    }, 100); // Close setTimeout with 100ms delay
-}
-
-function updateAllStationTotals() {
-    // Get all unique station IDs from the page
-    const stationIds = new Set();
-    document.querySelectorAll('[data-station-id]').forEach(element => {
-        const stationId = element.dataset.stationId;
-        if (stationId) {
-            stationIds.add(stationId);
-        }
-    });
-
-    // Update totals for each station
-    stationIds.forEach(stationId => {
-        updateStationTotals(stationId);
-    });
-}
 
 function loadExistingSpots() {
     console.log('=== LOAD EXISTING SPOTS CALLED ===');
@@ -1314,9 +1199,6 @@ function loadExistingSpots() {
                 });
 
                 // Update station totals for all stations that have spots
-                stationIds.forEach(stationId => {
-                    updateStationTotals(stationId);
-                });
             }
         })
         .catch(error => console.error('Error loading spots:', error));
@@ -1354,9 +1236,6 @@ function applyDiscountsToAll() {
         }
     });
 
-    stationIds.forEach(stationId => {
-        updateStationTotals(stationId);
-    });
 
     // Show success message
     showNotification('Nuolaidos pritaikytos visoms eilutėms!', 'success');
@@ -1637,8 +1516,6 @@ function recalculateRowTotals(row) {
     const grp = parseFloat(row.find('.grp').text()) || 0;
     const trp = parseFloat(row.find('.trp').text()) || 0;
 
-    row.find('.total-grp').text((grp * spotCount).toFixed(2));
-    row.find('.total-trp').text((trp * spotCount).toFixed(2));
 
     // Update pricing calculations
     const basePrice = parseFloat(row.find('.base-price').text()) || 0;
@@ -1647,8 +1524,6 @@ function recalculateRowTotals(row) {
     row.find('.total-before-discount').text((basePrice * spotCount).toFixed(2));
     row.find('.total-after-discount').text((finalPrice * spotCount).toFixed(2));
 
-    // Recalculate station totals
-    updateAllStationTotals();
 }
 
 </script>
@@ -2131,13 +2006,6 @@ function recalculateRowTotals(row) {
     padding: 0.75rem 0.5rem !important;
 }
 
-/* Station Totals Rows */
-.station-totals td {
-    background: linear-gradient(135deg, #fff7ed, #ffedd5) !important;
-    font-weight: 600 !important;
-    border-top: 2px solid #fed7aa !important;
-    border-bottom: 2px solid #fed7aa !important;
-}
 
 /* Weekend Rows */
 .weekend-row td {
@@ -2173,7 +2041,7 @@ function recalculateRowTotals(row) {
 }
 
 /* Numeric Cells */
-.grp, .trp, .total-grp, .total-trp, .affinity,
+.grp, .trp, .affinity,
 .trp-price, .base-price, .final-price, .total-before-discount, .total-after-discount {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     font-weight: 500;
