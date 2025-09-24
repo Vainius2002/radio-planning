@@ -261,6 +261,7 @@ class PlanStationData(db.Model):
     # Captured pricing (from StationPrice/StationZonePrice at plan creation time)
     base_price = db.Column(db.Float, default=0)
     seasonal_index = db.Column(db.Float, default=1.0)
+    special_index = db.Column(db.Float, default=1.0)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

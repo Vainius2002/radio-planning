@@ -432,13 +432,18 @@ def export_plan_to_excel(plan):
     for spot in spots_query:
         key = (spot.station_id, spot.time_slot, spot.is_weekend_row)
         if key not in spot_groups:
-            # Calculate special index - use special_position if it contains a numeric value, otherwise default to 1.0
-            special_index = 1.0
-            if spot.special_position:
-                try:
-                    special_index = float(spot.special_position)
-                except (ValueError, TypeError):
-                    special_index = 1.0
+            # Get captured seasonal_index and special_index from PlanStationData
+            from app.models import PlanStationData
+            captured_data = PlanStationData.query.filter_by(
+                plan_id=plan.id,
+                station_id=spot.station_id,
+                time_slot=spot.time_slot,
+                is_weekend=spot.is_weekend_row
+            ).first()
+
+            # Use captured indices if available, otherwise fallback to defaults
+            seasonal_index = captured_data.seasonal_index if captured_data else 1.0
+            special_index = captured_data.special_index if captured_data else 1.0
 
             spot_groups[key] = {
                 'station_name': clean_text(spot.station.name),
@@ -450,7 +455,7 @@ def export_plan_to_excel(plan):
                 'trp': spot.trp,
                 'affinity': spot.affinity,
                 'base_price': spot.base_price,
-                'seasonal_index': spot.seasonal_index,
+                'seasonal_index': seasonal_index,
                 'special_index': special_index,
                 'final_price': spot.final_price,
                 'price_per_trp': spot.price_per_trp
@@ -464,8 +469,8 @@ def export_plan_to_excel(plan):
     for key, group_data in spot_groups.items():
         # Only include rows with total_spots > 0
         if group_data['total_spots'] > 0:
-            # Calculate gross price (base_price * seasonal_index * special_index)
-            gross_price = group_data['base_price'] * group_data['seasonal_index'] * group_data['special_index']
+            # Calculate gross price (klipų skaičius * įkainis * sez.indeksas * spec.indeksas)
+            gross_price = group_data['total_spots'] * group_data['base_price'] * group_data['seasonal_index'] * group_data['special_index']
 
             # Calculate price after our discount
             price_after_our_discount = gross_price * (1 - plan.our_discount / 100)
@@ -624,7 +629,10 @@ def capture_station_data_for_plan(plan):
                     if best_zone_price:
                         base_price = best_zone_price.price
 
-                    # Create captured data record with month-specific seasonal index
+                    # Create captured data record with month-specific seasonal index and special index
+                    # For now, special_index defaults to 1.0, can be enhanced later to capture from another source
+                    special_index = 1.0
+
                     captured_data = PlanStationData(
                         plan_id=plan.id,
                         station_id=station.id,
@@ -635,7 +643,8 @@ def capture_station_data_for_plan(plan):
                         trp=rating.trp if rating else 0,
                         affinity=rating.affinity if rating else 0,
                         base_price=base_price,
-                        seasonal_index=seasonal_index
+                        seasonal_index=seasonal_index,
+                        special_index=special_index
                     )
 
                     db.session.add(captured_data)

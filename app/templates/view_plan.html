@@ -13,10 +13,10 @@
                     <span class="campaign-subtitle" style="color: rgba(255, 255, 255, 0.9);">Radijo kampanijos planavimas</span>
                 </div>
                 <div class="header-actions">
-                    <a href="/api/plans/{{ plan.id }}/export" class="btn-professional btn-primary" download>
+                    <button class="btn-professional btn-primary" onclick="downloadExcel({{ plan.id }})">
                         <i class="bi bi-download"></i>
                         <span>Eksportuoti</span>
-                    </a>
+                    </button>
                     <a href="/planning/new" class="btn-professional btn-secondary">
                         <i class="bi bi-arrow-left"></i>
                         <span>Atgal</span>
@@ -690,6 +690,73 @@ tr:not(.weekend-row) .weekend-cell {
 
 {% block extra_js %}
 <script>
+// Excel download function
+function downloadExcel(planId) {
+    console.log('Downloading Excel for plan:', planId);
+
+    try {
+        // Show loading indicator if available
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> <span>Generuojama...</span>';
+        button.disabled = true;
+
+        // Use fetch to handle the download properly
+        fetch(`/api/plans/${planId}/export`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Get filename from Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `radio_plan_${planId}.xlsx`;
+                if (contentDisposition) {
+                    const matches = /filename="([^"]*)"/.exec(contentDisposition);
+                    if (matches) {
+                        filename = matches[1];
+                    }
+                }
+
+                return response.blob().then(blob => ({ blob, filename }));
+            })
+            .then(({ blob, filename }) => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+
+                // Add to DOM temporarily
+                document.body.appendChild(link);
+
+                // Trigger download
+                link.click();
+
+                // Clean up
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                console.log('Excel download completed:', filename);
+            })
+            .catch(error => {
+                console.error('Download failed:', error);
+                alert('Excel export failed. Please try again.');
+            })
+            .finally(() => {
+                // Restore button
+                if (button) {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            });
+
+    } catch (error) {
+        console.error('Download error:', error);
+        alert('Excel export failed. Please try again.');
+    }
+}
+
 // Load data on page load - Multiple approaches for reliability
 function initializePage() {
     console.log('=== INITIALIZING PAGE ===');
