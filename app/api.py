@@ -495,17 +495,26 @@ def update_spot_count(plan_id):
 @api_bp.route('/plans/<int:plan_id>/export', methods=['GET'])
 def export_plan(plan_id):
     """Export plan to Excel"""
-    plan = RadioPlan.query.get_or_404(plan_id)
-    output = export_plan_to_excel(plan)
+    try:
+        plan = RadioPlan.query.get_or_404(plan_id)
+        output = export_plan_to_excel(plan)
 
-    filename = f"radio_plan_{plan.campaign_name}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        # Clean filename
+        clean_name = plan.campaign_name.replace('\n', '').replace('\r', '').strip() if plan.campaign_name else 'plan'
+        clean_name = ''.join(c for c in clean_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        filename = f"radio_plan_{clean_name}_{datetime.now().strftime('%Y%m%d')}.xlsx"
 
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        as_attachment=True,
-        download_name=filename
-    )
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        print(f"Export error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Export failed: {str(e)}'}), 500
 
 @api_bp.route('/seasonal-indices', methods=['GET'])
 def get_seasonal_indices():

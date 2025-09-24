@@ -13,10 +13,10 @@
                     <span class="campaign-subtitle" style="color: rgba(255, 255, 255, 0.9);">Radijo kampanijos planavimas</span>
                 </div>
                 <div class="header-actions">
-                    <button href="/api/plans/{{ plan.id }}/export" class="btn-professional btn-primary">
+                    <a href="/api/plans/{{ plan.id }}/export" class="btn-professional btn-primary" download>
                         <i class="bi bi-download"></i>
                         <span>Eksportuoti</span>
-                    </button>
+                    </a>
                     <a href="/planning/new" class="btn-professional btn-secondary">
                         <i class="bi bi-arrow-left"></i>
                         <span>Atgal</span>
@@ -197,6 +197,8 @@
                             {% for date in calendar_data.dates %}
                                 <th class="calendar-date-header {% if date.weekday() >= 5 %}weekend-date{% endif %}">
                                     <div class="date-info">
+                                        {% set weekday_abbrev = ['Pr', 'An', 'Tr', 'Ke', 'Pe', 'Se', 'Sk'][date.weekday()] %}
+                                        <span class="date-weekday">{{ weekday_abbrev }}</span>
                                         <span class="date-day">{{ date.strftime('%d') }}</span>
                                         <span class="date-month">{{ date.strftime('%m') }}</span>
                                     </div>
@@ -621,6 +623,12 @@ tr:not(.weekend-row) .weekend-cell {
     color: #333;
 }
 
+.date-weekday {
+    font-weight: 800;
+    font-size: 10px;
+    color: #4338ca;
+    text-transform: uppercase;
+}
 .date-month {
     color: #666;
     font-size: 10px;
