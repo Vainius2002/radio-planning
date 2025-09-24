@@ -205,21 +205,65 @@ def export_plan_to_excel(plan):
         'valign': 'vcenter'
     })
 
+    info_header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#D9E1F2',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
     data_format = workbook.add_format({
         'border': 1,
         'align': 'center',
         'valign': 'vcenter'
     })
 
+    data_green_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#E2EFDA'
+    })
+
+    calendar_header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#FFE699',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    calendar_data_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#FFF2CC'
+    })
+
+    data_blue_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#DEEBF7'
+    })
+
     info_format = workbook.add_format({
         'bold': True,
-        'align': 'left'
+        'align': 'left',
+        'bg_color': '#D9E1F2',
+        'border': 1
     })
 
     date_format = workbook.add_format({'num_format': 'yyyy.mm.dd', 'border': 1})
     money_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right'})
+    money_green_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#E2EFDA'})
+    money_blue_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#DEEBF7'})
     percent_format = workbook.add_format({'num_format': '0.0%', 'border': 1, 'align': 'center'})
+    percent_blue_format = workbook.add_format({'num_format': '0.0%', 'border': 1, 'align': 'center', 'bg_color': '#DEEBF7'})
     number_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1, 'align': 'right'})
+    number_green_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#E2EFDA'})
+    number_blue_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#DEEBF7'})
 
     # Helper function to clean text values
     def clean_text(text):
@@ -227,43 +271,57 @@ def export_plan_to_excel(plan):
             return ''
         return text.replace('\n', '').replace('\r', '').strip()
 
-    # Write header information (rows 0-7)
+    # Write header information with enhanced formatting (rows 0-7)
+    # Format A1:C7 range - apply consistent formatting
+    for row in range(7):
+        for col in range(3):
+            worksheet.write(row, col, '', info_header_format)
+
+    # Format H2:I5 range with same color as C3
+    for row in range(1, 5):
+        for col in range(7, 9):
+            worksheet.write(row, col, '', info_header_format)
+
+    # Format P4:P5 range
+    for row in range(3, 5):
+        worksheet.write(row, 15, '', info_header_format)
+
     worksheet.write(0, 0, 'Agentūra:', info_format)
-    worksheet.write(0, 1, 'BPN LT')
+    worksheet.write(0, 1, 'BPN LT', info_header_format)
 
     worksheet.write(1, 0, 'Klientas:', info_format)
-    worksheet.write(1, 1, clean_text(plan.client_brand_name) or 'CLIENT')
+    worksheet.write(1, 1, clean_text(plan.client_brand_name) or 'CLIENT', info_header_format)
     worksheet.write(1, 7, 'Tikslinė grupė', info_format)
-    worksheet.write(1, 8, clean_text(plan.target_audience))
+    worksheet.write(1, 8, clean_text(plan.target_audience), info_header_format)
 
     worksheet.write(2, 0, 'Produktas:', info_format)
-    worksheet.write(2, 1, clean_text(plan.project_name or plan.campaign_name))
+    worksheet.write(2, 1, clean_text(plan.project_name or plan.campaign_name), info_header_format)
     worksheet.write(2, 7, "TG dydis ('000):", info_format)
-    worksheet.write(2, 8, '1059.49')  # Placeholder value
+    worksheet.write(2, 8, '1059.49', info_header_format)  # Placeholder value
 
     worksheet.write(3, 0, 'Kampanija:', info_format)
-    worksheet.write(3, 1, clean_text(plan.campaign_name) or '')
+    worksheet.write(3, 1, clean_text(plan.campaign_name) or '', info_header_format)
     worksheet.write(3, 7, 'TG dalis (%):', info_format)
-    worksheet.write(3, 8, '60.2%')  # TG dalis percentage
-    worksheet.write(3, 15, 'Klipo trukmė (-s):', info_format)
+    worksheet.write(3, 8, '60.2%', info_header_format)  # TG dalis percentage
+    worksheet.write(3, 15, 'Klipo trukmė (-s):', info_header_format)
 
     worksheet.write(4, 0, 'Laikotarpis:', info_format)
     date_range = f"{plan.start_date.strftime('%Y.%m.%d')}-{plan.end_date.strftime('%m.%d')}"
-    worksheet.write(4, 1, date_range)
+    worksheet.write(4, 1, date_range, info_header_format)
     worksheet.write(4, 7, 'TG imtis:', info_format)
-    worksheet.write(4, 8, '1759.35')  # Placeholder value
+    worksheet.write(4, 8, '1759.35', info_header_format)  # Placeholder value
 
     # Get clip duration from the plan
     clip_duration = 30  # Default
     if plan.clips.count() > 0:
         clip_duration = plan.clips.first().duration
-    worksheet.write(4, 15, clip_duration)
+    worksheet.write(4, 15, clip_duration, info_header_format)
 
     worksheet.write(5, 0, 'Šalis:', info_format)
-    worksheet.write(5, 1, 'Lietuva')
+    worksheet.write(5, 1, 'Lietuva', info_header_format)
 
     worksheet.write(6, 0, 'Savaitės pradžios data', info_format)
-    worksheet.write(6, 1, plan.start_date, date_format)
+    worksheet.write(6, 1, plan.start_date, info_header_format)
 
     # Write main headers (rows 9-11)
     main_headers_row1 = [
@@ -287,13 +345,38 @@ def export_plan_to_excel(plan):
         '(EUR)', '(%)', '(%)'
     ]
 
-    # Write main headers with proper styling
-    for col, header in enumerate(main_headers_row1):
-        worksheet.write(9, col, clean_text(header), header_format)
-    for col, header in enumerate(main_headers_row2):
-        worksheet.write(10, col, clean_text(header), subheader_format)
-    for col, header in enumerate(main_headers_row3):
-        worksheet.write(11, col, clean_text(header), subheader_format)
+    # Create format for wrapped text in merged cells
+    header_format_wrap = workbook.add_format({
+        'bold': True,
+        'bg_color': '#4472C4',
+        'font_color': 'white',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'text_wrap': True
+    })
+
+    # Write main headers with proper styling and merge cells where appropriate
+    # First write headers that will be merged (need to write them first before merging)
+    worksheet.merge_range('A10:A12', 'Kanalas', header_format)
+    worksheet.merge_range('B10:B12', 'Laikas', header_format)
+    worksheet.merge_range('C10:C12', 'Savaitės diena', header_format_wrap)  # Use wrap format
+    worksheet.merge_range('D10:D12', 'Klipų skaičius', header_format_wrap)
+    worksheet.merge_range('E10:E12', 'Klipo trukmė', header_format_wrap)
+    worksheet.merge_range('F10:F12', 'GRP', header_format)
+    worksheet.merge_range('G10:G12', 'TRP', header_format)
+    worksheet.merge_range('H10:H12', 'Affinity', header_format)
+
+    # Merge columns I through Q (8 through 16)
+    worksheet.merge_range('I10:I12', '1 sec.\nTRP\nkaina', header_format_wrap)
+    worksheet.merge_range('J10:J12', 'Įkainis\n(EUR)', header_format_wrap)
+    worksheet.merge_range('K10:K12', 'Spec.\nindeksas', header_format_wrap)
+    worksheet.merge_range('L10:L12', 'Sez.\nindeksas', header_format_wrap)
+    worksheet.merge_range('M10:M12', 'Gross\nkaina\n(EUR)', header_format_wrap)
+    worksheet.merge_range('N10:N12', 'Kaina po\nmūsų nuolaidos\n(EUR)', header_format_wrap)
+    worksheet.merge_range('O10:O12', 'Kaina po\nkliento nuolaidos\n(EUR)', header_format_wrap)
+    worksheet.merge_range('P10:P12', 'Mūsų\nnuolaida\n(%)', header_format_wrap)
+    worksheet.merge_range('Q10:Q12', 'Kliento\nnuolaida\n(%)', header_format_wrap)
 
     # Add calendar headers starting from column 17
     start_col = 17
@@ -311,18 +394,18 @@ def export_plan_to_excel(plan):
     while current_date <= plan.end_date:
         # Write month name when month changes or at the beginning
         if current_date.month != last_month:
-            worksheet.write(9, start_col, month_names[current_date.month], header_format)
+            worksheet.write(9, start_col, month_names[current_date.month], calendar_header_format)
             last_month = current_date.month
         else:
             # Empty cell for continuation of same month
-            worksheet.write(9, start_col, '', header_format)
+            worksheet.write(9, start_col, '', calendar_header_format)
 
         # Day abbreviations
         day_abbrev = ['Pr', 'An', 'Tr', 'Ke', 'Pe', 'Se', 'Sk'][current_date.weekday()]
-        worksheet.write(10, start_col, day_abbrev, header_format)
+        worksheet.write(10, start_col, day_abbrev, calendar_header_format)
 
         # Write actual date number (day of month)
-        worksheet.write(11, start_col, current_date.day, header_format)
+        worksheet.write(11, start_col, current_date.day, calendar_header_format)
 
         date_cols[current_date] = start_col
         start_col += 1
@@ -373,7 +456,7 @@ def export_plan_to_excel(plan):
             # Calculate price after client discount
             price_after_client_discount = price_after_our_discount * (1 - plan.client_discount / 100)
 
-            # Write main data with proper formatting
+            # Write main data with color coding
             worksheet.write(row, 0, clean_text(group_data['station_name']), data_format)  # Kanalas
             worksheet.write(row, 1, clean_text(group_data['time_slot']), data_format)  # Laikas
             worksheet.write(row, 2, clean_text(group_data['weekday']), data_format)  # Savaitės diena
@@ -387,15 +470,17 @@ def export_plan_to_excel(plan):
             worksheet.write(row, 10, 1.0, number_format)  # Spec. indeksas (placeholder)
             worksheet.write(row, 11, group_data['seasonal_index'], number_format)  # Sez. indeksas
             worksheet.write(row, 12, gross_price, money_format)  # Gross kaina
-            worksheet.write(row, 13, price_after_our_discount, money_format)  # Kaina po mūsų nuolaidos
-            worksheet.write(row, 14, price_after_client_discount, money_format)  # Kaina po kliento nuolaidos
-            worksheet.write(row, 15, plan.our_discount / 100, percent_format)  # Mūsų nuolaida %
-            worksheet.write(row, 16, plan.client_discount / 100, percent_format)  # Kliento nuolaida %
 
-            # Write calendar data (spot counts for each date) - now starting from column 17
+            # Color code columns 13-16 (price and discount columns) with blue background
+            worksheet.write(row, 13, price_after_our_discount, money_blue_format)  # Kaina po mūsų nuolaidos
+            worksheet.write(row, 14, price_after_client_discount, money_blue_format)  # Kaina po kliento nuolaidos
+            worksheet.write(row, 15, plan.our_discount / 100, percent_blue_format)  # Mūsų nuolaida %
+            worksheet.write(row, 16, plan.client_discount / 100, percent_blue_format)  # Kliento nuolaida %
+
+            # Write calendar data with distinct calendar background for non-zero spot counts
             for date, spot_count in group_data['spots_by_date'].items():
                 if date in date_cols and spot_count > 0:
-                    worksheet.write(row, date_cols[date], spot_count, data_format)
+                    worksheet.write(row, date_cols[date], spot_count, calendar_data_format)
 
             row += 1
 
