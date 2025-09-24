@@ -213,6 +213,14 @@ def export_plan_to_excel(plan):
         'valign': 'vcenter'
     })
 
+    info_header_left_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#D9E1F2',
+        'border': 1,
+        'align': 'left',
+        'valign': 'vcenter'
+    })
+
     data_format = workbook.add_format({
         'border': 1,
         'align': 'center',
@@ -256,6 +264,7 @@ def export_plan_to_excel(plan):
     })
 
     date_format = workbook.add_format({'num_format': 'yyyy.mm.dd', 'border': 1})
+    date_left_format = workbook.add_format({'num_format': 'yyyy.mm.dd', 'border': 1, 'bg_color': '#D9E1F2', 'align': 'left'})
     money_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right'})
     money_green_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#E2EFDA'})
     money_blue_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#DEEBF7'})
@@ -287,27 +296,27 @@ def export_plan_to_excel(plan):
         worksheet.write(row, 15, '', info_header_format)
 
     worksheet.write(0, 0, 'Agentūra:', info_format)
-    worksheet.write(0, 1, 'BPN LT', info_header_format)
+    worksheet.merge_range('B1:C1', 'BPN LT', info_header_left_format)
 
     worksheet.write(1, 0, 'Klientas:', info_format)
-    worksheet.write(1, 1, clean_text(plan.client_brand_name) or 'CLIENT', info_header_format)
+    worksheet.merge_range('B2:C2', clean_text(plan.client_brand_name) or 'CLIENT', info_header_left_format)
     worksheet.write(1, 7, 'Tikslinė grupė', info_format)
     worksheet.write(1, 8, clean_text(plan.target_audience), info_header_format)
 
     worksheet.write(2, 0, 'Produktas:', info_format)
-    worksheet.write(2, 1, clean_text(plan.project_name or plan.campaign_name), info_header_format)
+    worksheet.merge_range('B3:C3', clean_text(plan.project_name or plan.campaign_name), info_header_left_format)
     worksheet.write(2, 7, "TG dydis ('000):", info_format)
     worksheet.write(2, 8, '1059.49', info_header_format)  # Placeholder value
 
     worksheet.write(3, 0, 'Kampanija:', info_format)
-    worksheet.write(3, 1, clean_text(plan.campaign_name) or '', info_header_format)
+    worksheet.merge_range('B4:C4', clean_text(plan.campaign_name) or '', info_header_left_format)
     worksheet.write(3, 7, 'TG dalis (%):', info_format)
     worksheet.write(3, 8, '60.2%', info_header_format)  # TG dalis percentage
     worksheet.write(3, 15, 'Klipo trukmė (-s):', info_header_format)
 
     worksheet.write(4, 0, 'Laikotarpis:', info_format)
     date_range = f"{plan.start_date.strftime('%Y.%m.%d')}-{plan.end_date.strftime('%m.%d')}"
-    worksheet.write(4, 1, date_range, info_header_format)
+    worksheet.merge_range('B5:C5', date_range, info_header_left_format)
     worksheet.write(4, 7, 'TG imtis:', info_format)
     worksheet.write(4, 8, '1759.35', info_header_format)  # Placeholder value
 
@@ -318,10 +327,10 @@ def export_plan_to_excel(plan):
     worksheet.write(4, 15, clip_duration, info_header_format)
 
     worksheet.write(5, 0, 'Šalis:', info_format)
-    worksheet.write(5, 1, 'Lietuva', info_header_format)
+    worksheet.merge_range('B6:C6', 'Lietuva', info_header_left_format)
 
     worksheet.write(6, 0, 'Savaitės pradžios data', info_format)
-    worksheet.write(6, 1, plan.start_date, info_header_format)
+    worksheet.merge_range('B7:C7', plan.start_date.strftime('%Y.%m.%d'), info_header_left_format)
 
     # Write main headers (rows 9-11)
     main_headers_row1 = [
