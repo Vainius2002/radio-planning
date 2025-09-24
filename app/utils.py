@@ -251,24 +251,24 @@ def export_plan_to_excel(plan):
 
     # Write main headers (rows 9-11)
     main_headers_row1 = [
-        'Kanalas', 'Laikas', 'Savaitės', 'Spec.', 'Klipų', 'Klipo ',
-        'GRP', 'TRP', 'Viso', 'Viso', 'Affinity', '1 sec.',
-        'Įkainis', 'Antkainis', 'Antkainis', 'Klipo', 'Kaina',
-        'Viso kaina', 'Viso kaina', 'Nuolaida'
+        'Kanalas', 'Laikas', 'Savaitės', 'Klipų', 'Klipo ',
+        'GRP', 'TRP', 'Affinity', '1 sec.',
+        'Įkainis', 'Spec.', 'Sez.', 'Gross', 'Kaina po',
+        'Kaina po', 'Mūsų', 'Kliento'
     ]
 
     main_headers_row2 = [
-        '', '', 'diena', 'pozicija', 'skaičius', 'trukmė',
-        '', '', 'GRP', 'TRP', '', 'TRP',
-        '(EUR)', '', 'padidintas *', 'kaina', 'po nuolaidos',
-        'iki nuolaidos', 'po nuolaidos', '(%)'
+        '', '', 'diena', 'skaičius', 'trukmė',
+        '', '', '', 'TRP',
+        '(EUR)', 'indeksas', 'indeksas', 'kaina', 'mūsų nuolaidos',
+        'kliento nuolaidos', 'nuolaida', 'nuolaida'
     ]
 
     main_headers_row3 = [
-        '', '', '', '', '', '',
-        '', '', '', '', '', 'kaina',
+        '', '', '', '', '',
+        '', '', '', 'kaina',
         '', '', '', '(EUR)', '(EUR)',
-        '(EUR)', '(EUR)', ''
+        '(EUR)', '(%)', '(%)'
     ]
 
     # Write main headers
@@ -279,19 +279,27 @@ def export_plan_to_excel(plan):
     for col, header in enumerate(main_headers_row3):
         worksheet.write(11, col, clean_text(header), header_format)
 
-    # Add calendar headers starting from column 20
-    start_col = 20
+    # Add calendar headers starting from column 17
+    start_col = 17
     current_date = plan.start_date
     date_cols = {}
 
-    # Week numbers for calendar
-    week_num = 31  # Starting week number from example
-    days_in_week = 0
+    # Track when to write month names
+    last_month = None
+    month_names = {
+        1: 'Sausis', 2: 'Vasaris', 3: 'Kovas', 4: 'Balandis',
+        5: 'Gegužė', 6: 'Birželis', 7: 'Liepa', 8: 'Rugpjūtis',
+        9: 'Rugsėjis', 10: 'Spalis', 11: 'Lapkritis', 12: 'Gruodis'
+    }
 
     while current_date <= plan.end_date:
-        if days_in_week == 0:
-            worksheet.write(9, start_col, str(week_num), header_format)
-            week_num += 1
+        # Write month name when month changes or at the beginning
+        if current_date.month != last_month:
+            worksheet.write(9, start_col, month_names[current_date.month], header_format)
+            last_month = current_date.month
+        else:
+            # Empty cell for continuation of same month
+            worksheet.write(9, start_col, '', header_format)
 
         # Day abbreviations
         day_abbrev = ['Pr', 'An', 'Tr', 'Ke', 'Pe', 'Se', 'Sk'][current_date.weekday()]
@@ -302,7 +310,6 @@ def export_plan_to_excel(plan):
 
         date_cols[current_date] = start_col
         start_col += 1
-        days_in_week = (days_in_week + 1) % 7
         current_date = current_date + pd.Timedelta(days=1)
 
     # Get all spots with spot_count > 0, grouped by station and time_slot
@@ -340,32 +347,36 @@ def export_plan_to_excel(plan):
     for key, group_data in spot_groups.items():
         # Only include rows with total_spots > 0
         if group_data['total_spots'] > 0:
+            # Calculate gross price (base_price * seasonal_index * special_index)
+            # For now using seasonal_index as special_index placeholder
+            gross_price = group_data['base_price'] * group_data['seasonal_index']
+
+            # Calculate price after our discount
+            price_after_our_discount = gross_price * (1 - plan.our_discount / 100)
+
+            # Calculate price after client discount
+            price_after_client_discount = price_after_our_discount * (1 - plan.client_discount / 100)
+
             # Write main data
             worksheet.write(row, 0, clean_text(group_data['station_name']))  # Kanalas
             worksheet.write(row, 1, clean_text(group_data['time_slot']))  # Laikas
             worksheet.write(row, 2, clean_text(group_data['weekday']))  # Savaitės diena
-            worksheet.write(row, 3, '0')  # Spec. pozicija
-            worksheet.write(row, 4, group_data['total_spots'])  # Klipų skaičius
-            worksheet.write(row, 5, clip_duration)  # Klipo trukmė
-            worksheet.write(row, 6, group_data['grp'], number_format)  # GRP
-            worksheet.write(row, 7, group_data['trp'], number_format)  # TRP
-            worksheet.write(row, 8, group_data['grp'] * group_data['total_spots'], number_format)  # Viso GRP
-            worksheet.write(row, 9, group_data['trp'] * group_data['total_spots'], number_format)  # Viso TRP
-            worksheet.write(row, 10, group_data['affinity'], number_format)  # Affinity
-            worksheet.write(row, 11, group_data['price_per_trp'], number_format)  # 1 sec TRP kaina
-            worksheet.write(row, 12, group_data['base_price'], money_format)  # Įkainis
-            worksheet.write(row, 13, group_data['seasonal_index'], number_format)  # Antkainis
-            worksheet.write(row, 14, group_data['base_price'] * group_data['seasonal_index'], money_format)  # Antkainis padidintas
-            worksheet.write(row, 15, group_data['base_price'] * group_data['seasonal_index'], money_format)  # Klipo kaina
-            worksheet.write(row, 16, group_data['final_price'], money_format)  # Kaina po nuolaidos
-            worksheet.write(row, 17, group_data['base_price'] * group_data['seasonal_index'] * group_data['total_spots'], money_format)  # Viso kaina iki nuolaidos
-            worksheet.write(row, 18, group_data['final_price'] * group_data['total_spots'], money_format)  # Viso kaina po nuolaidos
+            worksheet.write(row, 3, group_data['total_spots'])  # Klipų skaičius
+            worksheet.write(row, 4, clip_duration)  # Klipo trukmė
+            worksheet.write(row, 5, group_data['grp'], number_format)  # GRP
+            worksheet.write(row, 6, group_data['trp'], number_format)  # TRP
+            worksheet.write(row, 7, group_data['affinity'], number_format)  # Affinity
+            worksheet.write(row, 8, group_data['price_per_trp'], number_format)  # 1 sec TRP kaina
+            worksheet.write(row, 9, group_data['base_price'], money_format)  # Įkainis
+            worksheet.write(row, 10, 1.0, number_format)  # Spec. indeksas (placeholder)
+            worksheet.write(row, 11, group_data['seasonal_index'], number_format)  # Sez. indeksas
+            worksheet.write(row, 12, gross_price, money_format)  # Gross kaina
+            worksheet.write(row, 13, price_after_our_discount, money_format)  # Kaina po mūsų nuolaidos
+            worksheet.write(row, 14, price_after_client_discount, money_format)  # Kaina po kliento nuolaidos
+            worksheet.write(row, 15, plan.our_discount, percent_format)  # Mūsų nuolaida %
+            worksheet.write(row, 16, plan.client_discount, percent_format)  # Kliento nuolaida %
 
-            # Calculate discount percentage
-            discount_pct = 1 - (group_data['final_price'] / (group_data['base_price'] * group_data['seasonal_index'])) if (group_data['base_price'] * group_data['seasonal_index']) > 0 else 0
-            worksheet.write(row, 19, discount_pct, percent_format)  # Nuolaida %
-
-            # Write calendar data (spot counts for each date)
+            # Write calendar data (spot counts for each date) - now starting from column 17
             for date, spot_count in group_data['spots_by_date'].items():
                 if date in date_cols and spot_count > 0:
                     worksheet.write(row, date_cols[date], spot_count)
@@ -376,12 +387,11 @@ def export_plan_to_excel(plan):
     worksheet.set_column(0, 0, 20)  # Station name
     worksheet.set_column(1, 1, 12)  # Time
     worksheet.set_column(2, 2, 8)   # Weekday
-    worksheet.set_column(3, 3, 6)   # Spec pozicija
-    worksheet.set_column(4, 4, 8)   # Spot count
-    worksheet.set_column(5, 5, 8)   # Clip duration
-    worksheet.set_column(6, 11, 12) # GRP, TRP, totals, affinity, TRP price
-    worksheet.set_column(12, 19, 15) # Price columns
-    worksheet.set_column(20, start_col-1, 12)  # Calendar columns - much wider to prevent ### symbols
+    worksheet.set_column(3, 3, 8)   # Spot count
+    worksheet.set_column(4, 4, 8)   # Clip duration
+    worksheet.set_column(5, 8, 12)  # GRP, TRP, affinity, TRP price
+    worksheet.set_column(9, 16, 15) # Price columns and discounts
+    worksheet.set_column(17, start_col-1, 12)  # Calendar columns - much wider to prevent ### symbols
 
     workbook.close()
     output.seek(0)
