@@ -793,6 +793,44 @@ def update_station_rating(station_id):
         db.session.rollback()
         return jsonify({'error': f'Error updating rating: {str(e)}'}), 500
 
+@api_bp.route('/plans/<int:plan_id>/seasonal-index', methods=['PUT'])
+def update_plan_seasonal_index(plan_id):
+    """Update seasonal index for a specific station/time-slot in a plan"""
+    from app.models import PlanStationData
+
+    try:
+        data = request.get_json()
+        station_id = data.get('station_id')
+        time_slot = data.get('time_slot')
+        is_weekend = data.get('is_weekend', False)
+        month = data.get('month')
+        new_seasonal_index = data.get('seasonal_index')
+
+        print(f"Updating seasonal index for plan {plan_id}, station {station_id}, time slot {time_slot}, month {month}")
+
+        # Find the PlanStationData record
+        plan_data = PlanStationData.query.filter_by(
+            plan_id=plan_id,
+            station_id=station_id,
+            time_slot=time_slot,
+            is_weekend=is_weekend,
+            month=month
+        ).first()
+
+        if plan_data:
+            plan_data.seasonal_index = new_seasonal_index
+            db.session.commit()
+            print(f"Updated seasonal index to {new_seasonal_index}")
+            return jsonify({'success': True, 'seasonal_index': new_seasonal_index})
+        else:
+            print(f"No plan data found for the specified parameters")
+            return jsonify({'error': 'Plan station data not found'}), 404
+
+    except Exception as e:
+        print(f"Error updating seasonal index: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @api_bp.route('/seasonal-indices/station/<int:station_id>/month/<int:month>', methods=['GET'])
 def get_station_seasonal_index(station_id, month):
     """Get seasonal index for a station from external seasonal-adjustments service"""

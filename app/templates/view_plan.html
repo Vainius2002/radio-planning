@@ -237,7 +237,7 @@
                     <tbody class="station-tbody">
                         <!-- All weekday rows first -->
                         {% for time_slot in time_slots %}
-                            <tr class="planning-row station-{{ station.id }}-row" data-station-id="{{ station.id }}" data-time-slot="{{ time_slot }}" data-is-weekend="false">
+                            <tr class="planning-row station-{{ station.id }}-row weekday-row" data-station-id="{{ station.id }}" data-time-slot="{{ time_slot }}" data-is-weekend="false">
                                 <td>{{ station.name }}</td>
                                 <td>{{ time_slot }}</td>
                                 <td>I-V</td>
@@ -251,7 +251,18 @@
                                 <td class="affinity">0</td>
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
-                                <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1) }}</td>
+                                <td class="seasonal-index">
+                                    <input type="number"
+                                           class="seasonal-index-input"
+                                           value="{{ seasonal_indices.get(station.id, 1) }}"
+                                           min="0.5"
+                                           max="3.0"
+                                           step="0.01"
+                                           data-station-id="{{ station.id }}"
+                                           data-time-slot="{{ time_slot }}"
+                                           data-is-weekend="false"
+                                           style="width: 60px; border: none; background: transparent; text-align: center;">
+                                </td>
                                 <td class="price-with-index">1.00</td>
                                 <td class="final-price">0</td>
                                 <td class="total-before-discount">0</td>
@@ -293,7 +304,18 @@
                                 <td class="affinity">0</td>
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
-                                <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1) }}</td>
+                                <td class="seasonal-index">
+                                    <input type="number"
+                                           class="seasonal-index-input"
+                                           value="{{ seasonal_indices.get(station.id, 1) }}"
+                                           min="0.5"
+                                           max="3.0"
+                                           step="0.01"
+                                           data-station-id="{{ station.id }}"
+                                           data-time-slot="{{ time_slot }}"
+                                           data-is-weekend="false"
+                                           style="width: 60px; border: none; background: transparent; text-align: center;">
+                                </td>
                                 <td class="price-with-index">1.00</td>
                                 <td class="final-price">0</td>
                                 <td class="total-before-discount">0</td>
@@ -958,7 +980,13 @@ function loadCapturedStationData() {
 
                     // Set captured seasonal index from plan creation time
                     if (seasonalIndexCell && data.seasonal_index !== undefined) {
-                        seasonalIndexCell.textContent = data.seasonal_index.toFixed(2);
+                        const seasonalInput = seasonalIndexCell.querySelector('.seasonal-index-input');
+                        if (seasonalInput) {
+                            seasonalInput.value = data.seasonal_index.toFixed(2);
+                            // Update data attributes for this specific row
+                            seasonalInput.dataset.timeSlot = data.time_slot;
+                            seasonalInput.dataset.isWeekend = data.is_weekend.toString();
+                        }
                     }
 
                     console.log(`Applied captured data: Station ${data.station_name}, slot ${data.time_slot}, GRP=${data.grp}, TRP=${data.trp}`);
@@ -1248,7 +1276,8 @@ function calculateRowPrices(row) {
 
     // Get values from the row
     const basePrice = parseFloat(row.querySelector('.base-price').textContent || 0);
-    const seasonalIndex = parseFloat(row.querySelector('.seasonal-index').textContent || 1.0);
+    const seasonalIndexInput = row.querySelector('.seasonal-index-input');
+    const seasonalIndex = parseFloat(seasonalIndexInput ? seasonalIndexInput.value : 1.0);
     const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
     console.log(`calculateRowPrices: basePrice=${basePrice}, seasonalIndex=${seasonalIndex}, spotCount=${spotCount}`);
@@ -1905,7 +1934,8 @@ function applyDiscountsToAll() {
 function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     // Get values from the row
     const basePrice = parseFloat(row.querySelector('.base-price').textContent || 0);
-    const seasonalIndex = parseFloat(row.querySelector('.seasonal-index').textContent || 1.0);
+    const seasonalIndexInput = row.querySelector('.seasonal-index-input');
+    const seasonalIndex = parseFloat(seasonalIndexInput ? seasonalIndexInput.value : 1.0);
     const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
     // Spec. ikainis (price-with-index) should always be 1.0
@@ -2309,14 +2339,17 @@ function updateSeasonalIndexForDate(stationId, selectedDate, isWeekendRow) {
         stationRows.forEach(row => {
             const seasonalCell = row.querySelector('.seasonal-index');
             if (seasonalCell) {
-                const oldValue = seasonalCell.textContent;
-                seasonalCell.textContent = seasonalIndex.toFixed(2);
-                const timeSlot = row.getAttribute('data-time-slot');
-                const isWeekend = row.getAttribute('data-is-weekend');
-                console.log(`Updated seasonal index for station ${stationId}, time slot ${timeSlot} (${isWeekend === 'true' ? 'weekend' : 'weekday'} row) from ${oldValue} to ${seasonalIndex.toFixed(2)} (CAPTURED from plan creation)`);
+                const seasonalInput = seasonalCell.querySelector('.seasonal-index-input');
+                if (seasonalInput) {
+                    const oldValue = seasonalInput.value;
+                    seasonalInput.value = seasonalIndex.toFixed(2);
+                    const timeSlot = row.getAttribute('data-time-slot');
+                    const isWeekend = row.getAttribute('data-is-weekend');
+                    console.log(`Updated seasonal index for station ${stationId}, time slot ${timeSlot} (${isWeekend === 'true' ? 'weekend' : 'weekday'} row) from ${oldValue} to ${seasonalIndex.toFixed(2)} (CAPTURED from plan creation)`);
 
-                // Recalculate prices for this row with the captured seasonal index
-                calculateRowPrices(row);
+                    // Recalculate prices for this row with the captured seasonal index
+                    calculateRowPrices(row);
+                }
             }
         });
     } else {
@@ -2482,6 +2515,88 @@ function updateSpotCountInDatabaseWithContext(stationId, timeSlot, date, spotCou
         }
     });
 }
+
+// Add event handlers for editable seasonal indices
+function setupSeasonalIndexEventHandlers() {
+    // Use event delegation to handle dynamically created inputs
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('seasonal-index-input')) {
+            saveSeasonalIndexChange(e.target);
+        }
+    });
+
+    document.addEventListener('blur', function(e) {
+        if (e.target.classList.contains('seasonal-index-input')) {
+            saveSeasonalIndexChange(e.target);
+        }
+    });
+}
+
+function saveSeasonalIndexChange(inputElement) {
+    const row = inputElement.closest('tr');
+    if (!row) return;
+
+    const stationId = row.getAttribute('data-station-id');
+    const timeSlot = row.getAttribute('data-time-slot');
+    const isWeekendRow = row.getAttribute('data-is-weekend') === 'true';
+    const newValue = parseFloat(inputElement.value);
+
+    if (isNaN(newValue) || newValue < 0) {
+        inputElement.focus();
+        return;
+    }
+
+    // Show loading indicator
+    inputElement.disabled = true;
+    inputElement.style.backgroundColor = '#f3f4f6';
+
+    $.ajax({
+        url: `/api/plans/{{ plan.id }}/seasonal-index`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            station_id: parseInt(stationId),
+            time_slot: timeSlot,
+            is_weekend: isWeekendRow,
+            seasonal_index: newValue
+        }),
+        success: function(response) {
+            // Remove loading indicator
+            inputElement.disabled = false;
+            inputElement.style.backgroundColor = '';
+
+            // Recalculate prices for this row
+            calculateRowPrices(row);
+
+            // Update station totals
+            updateStationTotals(stationId);
+
+            // Show success feedback
+            inputElement.style.borderColor = '#10b981';
+            setTimeout(() => {
+                inputElement.style.borderColor = '';
+            }, 2000);
+        },
+        error: function(xhr, status, error) {
+            // Remove loading indicator
+            inputElement.disabled = false;
+            inputElement.style.backgroundColor = '';
+
+            // Show error feedback
+            inputElement.style.borderColor = '#ef4444';
+            setTimeout(() => {
+                inputElement.style.borderColor = '';
+            }, 3000);
+
+            alert('Klaida atnaujinant sezoniškumo indeksą: ' + (xhr.responseText || error));
+        }
+    });
+}
+
+// Initialize the seasonal index event handlers after DOM is ready
+$(document).ready(function() {
+    setupSeasonalIndexEventHandlers();
+});
 
 </script>
 
@@ -2978,6 +3093,47 @@ function updateSpotCountInDatabaseWithContext(stationId, timeSlot, date, spotCou
 
 .weekend-row:hover td {
     background: #fef2f2 !important;
+}
+
+.weekday-row:hover td {
+    background: #f0f9ff !important;
+}
+
+/* Editable Seasonal Index Inputs */
+.seasonal-index-input {
+    width: 100%;
+    max-width: 80px;
+    padding: 4px 8px;
+    border: 2px dashed #6366f1;
+    border-radius: 4px;
+    background: #f8faff;
+    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.2s ease;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.seasonal-index-input:hover {
+    border-color: #3b82f6;
+    background: #f8fafc;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.seasonal-index-input:focus {
+    border-style: solid;
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.seasonal-index-input:disabled {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 /* Calendar Cells */
