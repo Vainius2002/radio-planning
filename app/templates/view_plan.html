@@ -1265,15 +1265,15 @@ function calculateRowPrices(row) {
         priceWithIndexCell.textContent = specIndex.toFixed(2);
     }
 
-    // GROSS kaina = įkainis * sez. indeksas * spec. indeksas
-    const grossPrice = basePrice * seasonalIndex * specIndex;
+    // GROSS kaina = klipų skaičius * įkainis * sez. indeksas * spec. indeksas
+    const grossPrice = spotCount * basePrice * seasonalIndex * specIndex;
     row.querySelector('.final-price').textContent = grossPrice.toFixed(2);
 
-    // Kaina po mūsų nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
-    const priceAfterOurDiscount = basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
+    // Kaina po mūsų nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
+    const priceAfterOurDiscount = spotCount * basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
     row.querySelector('.total-before-discount').textContent = priceAfterOurDiscount.toFixed(2);
 
-    // Kaina po kliento nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
+    // Kaina po kliento nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
     const finalPrice = priceAfterOurDiscount * (1 - clientDiscount / 100);
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
@@ -1915,15 +1915,15 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
 
     // Calculate clip price (single spot price after seasonal adjustment)
 
-    // Calculate total before discount (price * spot count)
-    const grossPrice = basePrice * seasonalIndex * specIndex;
+    // GROSS kaina = klipų skaičius * įkainis * sez. indeksas * spec. indeksas
+    const grossPrice = spotCount * basePrice * seasonalIndex * specIndex;
     row.querySelector('.final-price').textContent = grossPrice.toFixed(2);
 
-    // Kaina po mūsų nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
-    const priceAfterOurDiscount = basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
+    // Kaina po mūsų nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
+    const priceAfterOurDiscount = spotCount * basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
     row.querySelector('.total-before-discount').textContent = priceAfterOurDiscount.toFixed(2);
 
-    // Kaina po kliento nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
+    // Kaina po kliento nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
     const finalPrice = priceAfterOurDiscount * (1 - clientDiscount / 100);
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
