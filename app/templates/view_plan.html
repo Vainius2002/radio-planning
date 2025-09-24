@@ -1250,28 +1250,23 @@ function calculateRowPrices(row) {
 
     console.log(`calculateRowPrices: basePrice=${basePrice}, seasonalIndex=${seasonalIndex}, spotCount=${spotCount}`);
 
-    // Spec. ikainis (price-with-index) should always be 1.0
-    const priceWithIndex = 1.0;
-    console.log(`calculateRowPrices: priceWithIndex = 1.0 (fixed value, not calculated)`);
-
+    // Spec. indeksas should always be 1.0
+    const specIndex = 1.0;
     const priceWithIndexCell = row.querySelector('.price-with-index');
     if (priceWithIndexCell) {
-        priceWithIndexCell.textContent = priceWithIndex.toFixed(2);
-        console.log(`calculateRowPrices: Updated price-with-index to ${priceWithIndex.toFixed(2)}`);
-    } else {
-        console.log(`calculateRowPrices: Could not find .price-with-index cell`);
+        priceWithIndexCell.textContent = specIndex.toFixed(2);
     }
 
-    // Calculate clip price (single spot price after seasonal adjustment)
+    // GROSS kaina = įkainis * sez. indeksas * spec. indeksas
+    const grossPrice = basePrice * seasonalIndex * specIndex;
+    row.querySelector('.final-price').textContent = grossPrice.toFixed(2);
 
-    // Calculate total before discount (price * spot count)
-    const totalBeforeDiscount = priceWithIndex * spotCount;
-    row.querySelector('.total-before-discount').textContent = totalBeforeDiscount.toFixed(2);
+    // Kaina po mūsų nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
+    const priceAfterOurDiscount = basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
+    row.querySelector('.total-before-discount').textContent = priceAfterOurDiscount.toFixed(2);
 
-    // Apply discounts
-    const priceAfterOurDiscount = totalBeforeDiscount * (1 - ourDiscount / 100);
+    // Kaina po kliento nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
     const finalPrice = priceAfterOurDiscount * (1 - clientDiscount / 100);
-    row.querySelector('.final-price').textContent = priceWithIndex.toFixed(2); // Single spot final price
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
     // Calculate TRP price if TRP is available using formula: įkainis / TRP
@@ -1907,19 +1902,21 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
     // Spec. ikainis (price-with-index) should always be 1.0
-    const priceWithIndex = 1.0;
-    row.querySelector('.price-with-index').textContent = priceWithIndex.toFixed(2);
+    const specIndex = 1.0;
+    row.querySelector('.price-with-index').textContent = specIndex.toFixed(2);
 
     // Calculate clip price (single spot price after seasonal adjustment)
 
     // Calculate total before discount (price * spot count)
-    const totalBeforeDiscount = priceWithIndex * spotCount;
-    row.querySelector('.total-before-discount').textContent = totalBeforeDiscount.toFixed(2);
+    const grossPrice = basePrice * seasonalIndex * specIndex;
+    row.querySelector('.final-price').textContent = grossPrice.toFixed(2);
 
-    // Apply discounts
-    const priceAfterOurDiscount = totalBeforeDiscount * (1 - ourDiscount / 100);
+    // Kaina po mūsų nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
+    const priceAfterOurDiscount = basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
+    row.querySelector('.total-before-discount').textContent = priceAfterOurDiscount.toFixed(2);
+
+    // Kaina po kliento nuolaidos = įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
     const finalPrice = priceAfterOurDiscount * (1 - clientDiscount / 100);
-    row.querySelector('.final-price').textContent = priceWithIndex.toFixed(2); // Single spot final price
     row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
 
     // Calculate TRP price if TRP is available using formula: įkainis / TRP

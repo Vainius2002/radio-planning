@@ -803,27 +803,28 @@ def update_plan_seasonal_index(plan_id):
         station_id = data.get('station_id')
         time_slot = data.get('time_slot')
         is_weekend = data.get('is_weekend', False)
-        month = data.get('month')
         new_seasonal_index = data.get('seasonal_index')
 
-        print(f"Updating seasonal index for plan {plan_id}, station {station_id}, time slot {time_slot}, month {month}")
+        print(f"Updating seasonal index for plan {plan_id}, station {station_id}, time slot {time_slot}, is_weekend {is_weekend}")
 
-        # Find the PlanStationData record
-        plan_data = PlanStationData.query.filter_by(
+        # Find ALL PlanStationData records for this station/time_slot (across all months)
+        plan_data_records = PlanStationData.query.filter_by(
             plan_id=plan_id,
             station_id=station_id,
             time_slot=time_slot,
-            is_weekend=is_weekend,
-            month=month
-        ).first()
+            is_weekend=is_weekend
+        ).all()
 
-        if plan_data:
-            plan_data.seasonal_index = new_seasonal_index
+        if plan_data_records:
+            # Update seasonal index for all months
+            for plan_data in plan_data_records:
+                plan_data.seasonal_index = new_seasonal_index
+
             db.session.commit()
-            print(f"Updated seasonal index to {new_seasonal_index}")
-            return jsonify({'success': True, 'seasonal_index': new_seasonal_index})
+            print(f"Updated seasonal index to {new_seasonal_index} for {len(plan_data_records)} month records")
+            return jsonify({'success': True, 'seasonal_index': new_seasonal_index, 'records_updated': len(plan_data_records)})
         else:
-            print(f"No plan data found for the specified parameters")
+            print(f"No plan data found for plan {plan_id}, station {station_id}, time slot {time_slot}, is_weekend {is_weekend}")
             return jsonify({'error': 'Plan station data not found'}), 404
 
     except Exception as e:
