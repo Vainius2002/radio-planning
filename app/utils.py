@@ -228,7 +228,7 @@ def export_plan_to_excel(plan):
     worksheet.write(3, 0, 'Kampanija:', info_format)
     worksheet.write(3, 1, clean_text(plan.campaign_name) or '')
     worksheet.write(3, 7, 'TG dalis (%):', info_format)
-    worksheet.write(3, 8, '0.6022')  # Placeholder value
+    worksheet.write(3, 8, '60.2%')  # TG dalis percentage
     worksheet.write(3, 15, 'Klipo trukmė (-s):', info_format)
 
     worksheet.write(4, 0, 'Laikotarpis:', info_format)
@@ -296,7 +296,9 @@ def export_plan_to_excel(plan):
         # Day abbreviations
         day_abbrev = ['Pr', 'An', 'Tr', 'Ke', 'Pe', 'Se', 'Sk'][current_date.weekday()]
         worksheet.write(10, start_col, day_abbrev, header_format)
-        worksheet.write(11, start_col, current_date, date_format)
+
+        # Write actual date number (day of month)
+        worksheet.write(11, start_col, current_date.day, header_format)
 
         date_cols[current_date] = start_col
         start_col += 1
@@ -379,7 +381,7 @@ def export_plan_to_excel(plan):
     worksheet.set_column(5, 5, 8)   # Clip duration
     worksheet.set_column(6, 11, 12) # GRP, TRP, totals, affinity, TRP price
     worksheet.set_column(12, 19, 15) # Price columns
-    worksheet.set_column(20, start_col-1, 8)  # Calendar columns - wider to prevent ###
+    worksheet.set_column(20, start_col-1, 12)  # Calendar columns - much wider to prevent ### symbols
 
     workbook.close()
     output.seek(0)
