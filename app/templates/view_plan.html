@@ -314,12 +314,10 @@
                         <tr class="station-totals" data-station-id="{{ station.id }}" style="background-color: #fff3cd; font-weight: bold;">
                             <td colspan="2" style="text-align: right; padding-right: 10px;">VISO:</td>
                             <td></td>
-                            <td></td>
                             <td class="station-total-spots" id="station-{{ station.id }}-total-spots">0</td>
                             <td></td>
                             <td class="station-total-grp" id="station-{{ station.id }}-total-grp">0</td>
                             <td class="station-total-trp" id="station-{{ station.id }}-total-trp">0</td>
-                            <td class="station-total-affinity" id="station-{{ station.id }}-total-affinity">0</td>
                             <td></td>
                             <td></td>
                             <td></td>
@@ -357,7 +355,7 @@
 }
 
 /* Ensure station totals cells also display properly */
-.station-total-grp, .station-total-trp, .station-total-affinity {
+.station-total-grp, .station-total-trp {
     min-width: 70px;
     white-space: nowrap;
     text-align: center;
@@ -1456,7 +1454,6 @@ function updateStationTotals(stationId) {
         let totalSpots = 0;
         let totalGrp = 0;
         let totalTrp = 0;
-        let totalAffinity = 0;
         let totalBeforeDiscount = 0;
         let totalAfterDiscount = 0;
 
@@ -1465,7 +1462,6 @@ function updateStationTotals(stationId) {
             const spotNumberElement = row.querySelector('.spot-number');
             const grpElement = row.querySelector('.grp');
             const trpElement = row.querySelector('.trp');
-            const affinityElement = row.querySelector('.affinity');
             const beforeDiscountElement = row.querySelector('.total-before-discount');
             const afterDiscountElement = row.querySelector('.total-after-discount');
 
@@ -1473,14 +1469,12 @@ function updateStationTotals(stationId) {
             console.log(`Spot number element:`, spotNumberElement);
             console.log(`GRP element:`, grpElement);
             console.log(`TRP element:`, trpElement);
-            console.log(`Affinity element:`, affinityElement);
             console.log(`Before discount element:`, beforeDiscountElement);
             console.log(`After discount element:`, afterDiscountElement);
 
             let spotCount = 0;
             let grpValue = 0;
             let trpValue = 0;
-            let affinityValue = 0;
             let beforeDiscountValue = 0;
             let afterDiscountValue = 0;
 
@@ -1512,15 +1506,6 @@ function updateStationTotals(stationId) {
                 console.log(`No TRP element found in row ${index}`);
             }
 
-            if (affinityElement) {
-                affinityValue = parseFloat(affinityElement.textContent) || 0;
-                console.log(`Found Affinity value: ${affinityValue}`);
-                // Just add the Affinity value directly (not multiplied by spot count)
-                console.log(`Adding Affinity value to total: ${affinityValue}`);
-                totalAffinity += affinityValue;
-            } else {
-                console.log(`No Affinity element found in row ${index}`);
-            }
 
             if (beforeDiscountElement) {
                 beforeDiscountValue = parseFloat(beforeDiscountElement.textContent) || 0;
@@ -1546,7 +1531,6 @@ function updateStationTotals(stationId) {
         console.log(`Total spots calculated: ${totalSpots}`);
         console.log(`Total GRP calculated: ${totalGrp}`);
         console.log(`Total TRP calculated: ${totalTrp}`);
-        console.log(`Total Affinity calculated: ${totalAffinity}`);
         console.log(`Total Before Discount calculated: ${totalBeforeDiscount}`);
         console.log(`Total After Discount calculated: ${totalAfterDiscount}`);
 
@@ -1583,16 +1567,6 @@ function updateStationTotals(stationId) {
             console.log(`Could not find element with id: station-${stationId}-total-trp`);
         }
 
-        // Update the station total Affinity element
-        const totalAffinityElement = document.getElementById(`station-${stationId}-total-affinity`);
-        console.log(`Total Affinity element:`, totalAffinityElement);
-
-        if (totalAffinityElement) {
-            totalAffinityElement.textContent = totalAffinity.toFixed(2);
-            console.log(`Updated station ${stationId} total Affinity to: ${totalAffinity.toFixed(2)}`);
-        } else {
-            console.log(`Could not find element with id: station-${stationId}-total-affinity`);
-        }
 
         // Update the station total Before Discount element
         const totalBeforeDiscountElement = document.getElementById(`station-${stationId}-total-before-discount`);
