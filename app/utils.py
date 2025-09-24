@@ -187,12 +187,28 @@ def export_plan_to_excel(plan):
 
     worksheet = workbook.add_worksheet(worksheet_name)
 
-    # Add formats
+    # Add formats with enhanced styling
     header_format = workbook.add_format({
         'bold': True,
-        'bg_color': '#D9E1F2',
+        'bg_color': '#4472C4',
+        'font_color': 'white',
         'border': 1,
-        'align': 'center'
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    subheader_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#8DB4E2',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    data_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
     })
 
     info_format = workbook.add_format({
@@ -200,10 +216,10 @@ def export_plan_to_excel(plan):
         'align': 'left'
     })
 
-    date_format = workbook.add_format({'num_format': 'yyyy.mm.dd'})
-    money_format = workbook.add_format({'num_format': '€#,##0.00'})
-    percent_format = workbook.add_format({'num_format': '0.00%'})
-    number_format = workbook.add_format({'num_format': '#,##0.00'})
+    date_format = workbook.add_format({'num_format': 'yyyy.mm.dd', 'border': 1})
+    money_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right'})
+    percent_format = workbook.add_format({'num_format': '0.0%', 'border': 1, 'align': 'center'})
+    number_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1, 'align': 'right'})
 
     # Helper function to clean text values
     def clean_text(text):
@@ -271,13 +287,13 @@ def export_plan_to_excel(plan):
         '(EUR)', '(%)', '(%)'
     ]
 
-    # Write main headers
+    # Write main headers with proper styling
     for col, header in enumerate(main_headers_row1):
         worksheet.write(9, col, clean_text(header), header_format)
     for col, header in enumerate(main_headers_row2):
-        worksheet.write(10, col, clean_text(header), header_format)
+        worksheet.write(10, col, clean_text(header), subheader_format)
     for col, header in enumerate(main_headers_row3):
-        worksheet.write(11, col, clean_text(header), header_format)
+        worksheet.write(11, col, clean_text(header), subheader_format)
 
     # Add calendar headers starting from column 17
     start_col = 17
@@ -357,12 +373,12 @@ def export_plan_to_excel(plan):
             # Calculate price after client discount
             price_after_client_discount = price_after_our_discount * (1 - plan.client_discount / 100)
 
-            # Write main data
-            worksheet.write(row, 0, clean_text(group_data['station_name']))  # Kanalas
-            worksheet.write(row, 1, clean_text(group_data['time_slot']))  # Laikas
-            worksheet.write(row, 2, clean_text(group_data['weekday']))  # Savaitės diena
-            worksheet.write(row, 3, group_data['total_spots'])  # Klipų skaičius
-            worksheet.write(row, 4, clip_duration)  # Klipo trukmė
+            # Write main data with proper formatting
+            worksheet.write(row, 0, clean_text(group_data['station_name']), data_format)  # Kanalas
+            worksheet.write(row, 1, clean_text(group_data['time_slot']), data_format)  # Laikas
+            worksheet.write(row, 2, clean_text(group_data['weekday']), data_format)  # Savaitės diena
+            worksheet.write(row, 3, group_data['total_spots'], data_format)  # Klipų skaičius
+            worksheet.write(row, 4, clip_duration, data_format)  # Klipo trukmė
             worksheet.write(row, 5, group_data['grp'], number_format)  # GRP
             worksheet.write(row, 6, group_data['trp'], number_format)  # TRP
             worksheet.write(row, 7, group_data['affinity'], number_format)  # Affinity
@@ -373,13 +389,13 @@ def export_plan_to_excel(plan):
             worksheet.write(row, 12, gross_price, money_format)  # Gross kaina
             worksheet.write(row, 13, price_after_our_discount, money_format)  # Kaina po mūsų nuolaidos
             worksheet.write(row, 14, price_after_client_discount, money_format)  # Kaina po kliento nuolaidos
-            worksheet.write(row, 15, plan.our_discount, percent_format)  # Mūsų nuolaida %
-            worksheet.write(row, 16, plan.client_discount, percent_format)  # Kliento nuolaida %
+            worksheet.write(row, 15, plan.our_discount / 100, percent_format)  # Mūsų nuolaida %
+            worksheet.write(row, 16, plan.client_discount / 100, percent_format)  # Kliento nuolaida %
 
             # Write calendar data (spot counts for each date) - now starting from column 17
             for date, spot_count in group_data['spots_by_date'].items():
                 if date in date_cols and spot_count > 0:
-                    worksheet.write(row, date_cols[date], spot_count)
+                    worksheet.write(row, date_cols[date], spot_count, data_format)
 
             row += 1
 
