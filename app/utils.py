@@ -336,7 +336,7 @@ def export_plan_to_excel(plan):
     main_headers_row1 = [
         'Kanalas', 'Laikas', 'Savaitės', 'Klipų', 'Klipo ',
         'GRP', 'TRP', 'Affinity', '1 sec.',
-        'Įkainis', 'Spec.', 'Sez.', 'Gross', 'Kaina po',
+        'Įkainis', 'Sez.', 'Spec.', 'Gross', 'Kaina po',
         'Kaina po', 'Mūsų', 'Kliento'
     ]
 
@@ -379,8 +379,8 @@ def export_plan_to_excel(plan):
     # Merge columns I through Q (8 through 16)
     worksheet.merge_range('I10:I12', '1 sec.\nTRP\nkaina', header_format_wrap)
     worksheet.merge_range('J10:J12', 'Įkainis\n(EUR)', header_format_wrap)
-    worksheet.merge_range('K10:K12', 'Spec.\nindeksas', header_format_wrap)
-    worksheet.merge_range('L10:L12', 'Sez.\nindeksas', header_format_wrap)
+    worksheet.merge_range('K10:K12', 'Sez.\nindeksas', header_format_wrap)
+    worksheet.merge_range('L10:L12', 'Spec.\nindeksas', header_format_wrap)
     worksheet.merge_range('M10:M12', 'Gross\nkaina\n(EUR)', header_format_wrap)
     worksheet.merge_range('N10:N12', 'Kaina po\nmūsų nuolaidos\n(EUR)', header_format_wrap)
     worksheet.merge_range('O10:O12', 'Kaina po\nkliento nuolaidos\n(EUR)', header_format_wrap)
@@ -432,6 +432,14 @@ def export_plan_to_excel(plan):
     for spot in spots_query:
         key = (spot.station_id, spot.time_slot, spot.is_weekend_row)
         if key not in spot_groups:
+            # Calculate special index - use special_position if it contains a numeric value, otherwise default to 1.0
+            special_index = 1.0
+            if spot.special_position:
+                try:
+                    special_index = float(spot.special_position)
+                except (ValueError, TypeError):
+                    special_index = 1.0
+
             spot_groups[key] = {
                 'station_name': clean_text(spot.station.name),
                 'time_slot': clean_text(spot.time_slot),
@@ -443,6 +451,7 @@ def export_plan_to_excel(plan):
                 'affinity': spot.affinity,
                 'base_price': spot.base_price,
                 'seasonal_index': spot.seasonal_index,
+                'special_index': special_index,
                 'final_price': spot.final_price,
                 'price_per_trp': spot.price_per_trp
             }
@@ -456,8 +465,7 @@ def export_plan_to_excel(plan):
         # Only include rows with total_spots > 0
         if group_data['total_spots'] > 0:
             # Calculate gross price (base_price * seasonal_index * special_index)
-            # For now using seasonal_index as special_index placeholder
-            gross_price = group_data['base_price'] * group_data['seasonal_index']
+            gross_price = group_data['base_price'] * group_data['seasonal_index'] * group_data['special_index']
 
             # Calculate price after our discount
             price_after_our_discount = gross_price * (1 - plan.our_discount / 100)
@@ -476,8 +484,8 @@ def export_plan_to_excel(plan):
             worksheet.write(row, 7, group_data['affinity'], number_format)  # Affinity
             worksheet.write(row, 8, group_data['price_per_trp'], number_format)  # 1 sec TRP kaina
             worksheet.write(row, 9, group_data['base_price'], money_format)  # Įkainis
-            worksheet.write(row, 10, 1.0, number_format)  # Spec. indeksas (placeholder)
-            worksheet.write(row, 11, group_data['seasonal_index'], number_format)  # Sez. indeksas
+            worksheet.write(row, 10, group_data['seasonal_index'], number_format)  # Sez. indeksas
+            worksheet.write(row, 11, group_data['special_index'], number_format)  # Spec. indeksas
             worksheet.write(row, 12, gross_price, money_format)  # Gross kaina
 
             # Color code columns 13-16 (price and discount columns) with blue background
