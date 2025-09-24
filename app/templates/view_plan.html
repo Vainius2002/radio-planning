@@ -215,8 +215,8 @@
                             <!-- Pricing columns -->
                             <th class="trp-price-header">1 sec TRP<br>kaina</th>
                             <th class="base-price-header">Įkainis</th>
-                            <th class="seasonal-header">Spec. Indeksas</th>
-                            <th class="price-with-index-header">Sez. Indeksas</th>
+                            <th class="seasonal-header">Sez. Indeksas</th>
+                            <th class="price-with-index-header">Spec. Indeksas</th>
                             <!-- Totals columns -->
                             <th class="final-price-header">GROSS<br>kaina</th>
                             <th class="total-before-header">Kaina po mūsų<br>nuolaidos</th>
@@ -252,7 +252,7 @@
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
                                 <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1) }}</td>
-                                <td class="price-with-index">0</td>
+                                <td class="price-with-index">1.00</td>
                                 <td class="final-price">0</td>
                                 <td class="total-before-discount">0</td>
                                 <td class="total-after-discount">0</td>
@@ -294,7 +294,7 @@
                                 <td class="trp-price">0</td>
                                 <td class="base-price">0</td>
                                 <td class="seasonal-index">{{ seasonal_indices.get(station.id, 1) }}</td>
-                                <td class="price-with-index">0</td>
+                                <td class="price-with-index">1.00</td>
                                 <td class="final-price">0</td>
                                 <td class="total-before-discount">0</td>
                                 <td class="total-after-discount">0</td>
@@ -956,9 +956,9 @@ function loadCapturedStationData() {
                     if (affinityCell) affinityCell.textContent = data.affinity.toFixed(2);
                     if (basePriceCell) basePriceCell.textContent = data.base_price.toFixed(2);
 
-                    // Set default seasonal index for now - will be updated by loadLiveSeasonalIndices
-                    if (seasonalIndexCell) {
-                        seasonalIndexCell.textContent = "1.00";
+                    // Set captured seasonal index from plan creation time
+                    if (seasonalIndexCell && data.seasonal_index !== undefined) {
+                        seasonalIndexCell.textContent = data.seasonal_index.toFixed(2);
                     }
 
                     console.log(`Applied captured data: Station ${data.station_name}, slot ${data.time_slot}, GRP=${data.grp}, TRP=${data.trp}`);
@@ -968,7 +968,7 @@ function loadCapturedStationData() {
             console.log(`Loaded captured station data for plan {{ plan.id }}`);
 
             // Load LIVE seasonal indices from seasonal-adjustments
-            loadLiveSeasonalIndices();
+            // loadLiveSeasonalIndices(); // Commented out - we use captured seasonal indices instead
         })
         .catch(error => {
             console.error('Error loading captured station data:', error);
@@ -2289,7 +2289,7 @@ function getCapturedSeasonalIndex(stationId, month) {
 }
 
 function updateSeasonalIndexForDate(stationId, selectedDate, isWeekendRow) {
-    console.log(`=== UPDATING SEASONAL INDEX FROM LIVE SEASONAL-ADJUSTMENTS: ${selectedDate} ===`);
+    console.log(`=== UPDATING SEASONAL INDEX FROM CAPTURED DATA: ${selectedDate} ===`);
 
     // Extract month from selected date
     const dateObj = new Date(selectedDate);
@@ -2297,37 +2297,31 @@ function updateSeasonalIndexForDate(stationId, selectedDate, isWeekendRow) {
 
     console.log(`Station ${stationId}, Date: ${selectedDate}, Month: ${month}, Weekend Row: ${isWeekendRow}`);
 
-    // Fetch LIVE seasonal index from seasonal-adjustments service
-    console.log(`Fetching LIVE seasonal index for station ${stationId}, month ${month}`);
-    fetch(`/api/seasonal-indices/station/${stationId}/month/${month}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log(`Received LIVE seasonal index data for station ${stationId}, month ${month}:`, data);
-            if (data.seasonal_index !== undefined) {
-                // Update ALL rows for this station with the LIVE seasonal index for this month
-                const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
-                console.log(`Updating ${stationRows.length} rows for station ${stationId} with LIVE seasonal index ${data.seasonal_index}`);
+    // Get captured seasonal index for this station and month from the captured data
+    const seasonalIndex = getCapturedSeasonalIndex(stationId, month);
+    if (seasonalIndex !== null) {
+        console.log(`Found captured seasonal index: ${seasonalIndex} for station ${stationId}, month ${month}`);
 
-                stationRows.forEach(row => {
-                    const seasonalCell = row.querySelector('.seasonal-index');
-                    if (seasonalCell) {
-                        const oldValue = seasonalCell.textContent;
-                        seasonalCell.textContent = data.seasonal_index.toFixed(2);
-                        const timeSlot = row.getAttribute('data-time-slot');
-                        const isWeekend = row.getAttribute('data-is-weekend');
-                        console.log(`Updated seasonal index for station ${stationId}, time slot ${timeSlot} (${isWeekend === 'true' ? 'weekend' : 'weekday'} row) from ${oldValue} to ${data.seasonal_index.toFixed(2)} (LIVE from seasonal-adjustments)`);
+        // Update ALL rows for this station with the captured seasonal index for this month
+        const stationRows = document.querySelectorAll(`tr[data-station-id="${stationId}"]`);
+        console.log(`Updating ${stationRows.length} rows for station ${stationId} with captured seasonal index ${seasonalIndex}`);
 
-                        // Recalculate prices for this row with the new seasonal index
-                        calculateRowPrices(row);
-                    }
-                });
-            } else {
-                console.log(`No LIVE seasonal index found for station ${stationId}, month ${month}, keeping current values`);
+        stationRows.forEach(row => {
+            const seasonalCell = row.querySelector('.seasonal-index');
+            if (seasonalCell) {
+                const oldValue = seasonalCell.textContent;
+                seasonalCell.textContent = seasonalIndex.toFixed(2);
+                const timeSlot = row.getAttribute('data-time-slot');
+                const isWeekend = row.getAttribute('data-is-weekend');
+                console.log(`Updated seasonal index for station ${stationId}, time slot ${timeSlot} (${isWeekend === 'true' ? 'weekend' : 'weekday'} row) from ${oldValue} to ${seasonalIndex.toFixed(2)} (CAPTURED from plan creation)`);
+
+                // Recalculate prices for this row with the captured seasonal index
+                calculateRowPrices(row);
             }
-        })
-        .catch(error => {
-            console.error(`Error fetching LIVE seasonal index for station ${stationId}, month ${month}:`, error);
         });
+    } else {
+        console.log(`No captured seasonal index found for station ${stationId}, month ${month}`);
+    }
 }
 
 function updateMainSpotCountDisplay(stationId, timeSlot, selectedDate) {

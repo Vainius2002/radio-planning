@@ -269,6 +269,38 @@ def export_plan_to_excel(plan):
 
     return output
 
+def get_live_seasonal_index(station_id, group_id, month):
+    """Fetch live seasonal index from external seasonal-adjustments service"""
+    import requests
+    from bs4 import BeautifulSoup
+
+    try:
+        # Fetch seasonal index from external seasonal-adjustments service for this specific group
+        seasonal_adjustments_url = f"http://127.0.0.1:5006/groups/{group_id}/seasonal-adjustments"
+
+        response = requests.get(seasonal_adjustments_url, timeout=10)
+        if response.status_code == 200:
+            # Parse HTML response to extract seasonal index for the specific month
+            soup = BeautifulSoup(response.text, 'html.parser')
+            print(f"Fetching LIVE seasonal index for station {station_id} (group {group_id}), month {month}")
+
+            # Look for input elements with class "index-value" and find the one for the specific month
+            month_inputs = soup.find_all('input', class_='index-value')
+
+            # Find the input for the specific month (month inputs are in order 1-12)
+            if month_inputs and 1 <= month <= len(month_inputs):
+                month_input = month_inputs[month - 1]  # month-1 because array is 0-indexed
+                seasonal_index = float(month_input.get('value', 1.0))
+                print(f"Found LIVE seasonal index {seasonal_index} for station {station_id} (group {group_id}), month {month}")
+                return seasonal_index
+
+        print(f"Could not fetch LIVE seasonal index for station {station_id} (group {group_id}), month {month}, using default 1.0")
+        return 1.0
+
+    except Exception as e:
+        print(f"Error fetching LIVE seasonal index for station {station_id} (group {group_id}), month {month}: {str(e)}")
+        return 1.0
+
 def capture_station_data_for_plan(plan):
     """Capture current station ratings and prices when plan is created"""
     from app.models import PlanStationData, StationRating, StationZonePrice, SeasonalIndex
@@ -303,22 +335,9 @@ def capture_station_data_for_plan(plan):
 
         # Capture data for each month, time slot, and weekend combination
         for month in months_in_plan:
-            # Get seasonal index for this station and month
-            seasonal_index = 1.0
-            seasonal = SeasonalIndex.query.filter_by(
-                group_id=station.group_id,
-                month=month,
-                is_active=True
-            ).first()
-            if not seasonal:
-                # Fall back to global seasonal index for this month
-                seasonal = SeasonalIndex.query.filter_by(
-                    group_id=None,
-                    month=month,
-                    is_active=True
-                ).first()
-            if seasonal:
-                seasonal_index = seasonal.index_value
+            # Get LIVE seasonal index for this station and month from external seasonal-adjustments service
+            seasonal_index = get_live_seasonal_index(station.id, station.group_id, month)
+            print(f"Station {station.name} (group {station.group_id}), Month {month}: LIVE seasonal index = {seasonal_index}")
 
             print(f"Month {month}: Seasonal index = {seasonal_index}")
 
