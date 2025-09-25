@@ -221,6 +221,14 @@ def export_plan_to_excel(plan):
         'valign': 'vcenter'
     })
 
+    info_header_center_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#D9E1F2',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
     data_format = workbook.add_format({
         'border': 1,
         'align': 'center',
@@ -291,9 +299,12 @@ def export_plan_to_excel(plan):
         for col in range(7, 9):
             worksheet.write(row, col, '', info_header_format)
 
-    # Format P4:P5 range
+    # Format O4:P5 range
     for row in range(3, 5):
-        worksheet.write(row, 15, '', info_header_format)
+        # Column O (14) - regular format
+        worksheet.write(row, 14, '', info_header_format)
+        # Column P (15) - centered format for clip names
+        worksheet.write(row, 15, '', info_header_center_format)
 
     worksheet.write(0, 0, 'Agentūra:', info_format)
     worksheet.merge_range('B1:C1', 'BPN LT', info_header_left_format)
@@ -312,7 +323,8 @@ def export_plan_to_excel(plan):
     worksheet.merge_range('B4:C4', clean_text(plan.campaign_name) or '', info_header_left_format)
     worksheet.write(3, 7, 'TG dalis (%):', info_format)
     worksheet.write(3, 8, '60.2%', info_header_format)  # TG dalis percentage
-    worksheet.write(3, 15, 'Klipo trukmė (-s):', info_header_format)
+    worksheet.write(3, 14, 'Klipo trukmė (-s):', info_header_format)
+    worksheet.write(3, 15, 'Klipo pavadinimas:', info_header_format)
 
     worksheet.write(4, 0, 'Laikotarpis:', info_format)
     date_range = f"{plan.start_date.strftime('%Y.%m.%d')}-{plan.end_date.strftime('%m.%d')}"
@@ -320,11 +332,16 @@ def export_plan_to_excel(plan):
     worksheet.write(4, 7, 'TG imtis:', info_format)
     worksheet.write(4, 8, '1759.35', info_header_format)  # Placeholder value
 
-    # Get clip duration from the plan
+    # Get clip name and duration from the plan
+    clip_name = ''
     clip_duration = 30  # Default
     if plan.clips.count() > 0:
-        clip_duration = plan.clips.first().duration
-    worksheet.write(4, 15, clip_duration, info_header_format)
+        first_clip = plan.clips.first()
+        clip_name = first_clip.name
+        clip_duration = first_clip.duration
+
+    worksheet.write(4, 14, clip_duration, info_header_format)
+    worksheet.write(4, 15, clean_text(clip_name), info_header_center_format)
 
     worksheet.write(5, 0, 'Šalis:', info_format)
     worksheet.merge_range('B6:C6', 'Lietuva', info_header_left_format)
@@ -531,7 +548,9 @@ def export_plan_to_excel(plan):
     worksheet.set_column(3, 3, 8)   # Spot count
     worksheet.set_column(4, 4, 8)   # Clip duration
     worksheet.set_column(5, 8, 12)  # GRP, TRP, affinity, TRP price
-    worksheet.set_column(9, 16, 15) # Price columns and discounts
+    worksheet.set_column(9, 14, 15) # Price columns and discounts (up to column O)
+    worksheet.set_column(15, 15, 25) # Clip name column (P) - wider to fit clip names
+    worksheet.set_column(16, 16, 15) # Client discount column
     worksheet.set_column(17, start_col-1, 12)  # Calendar columns - much wider to prevent ### symbols
 
     workbook.close()
