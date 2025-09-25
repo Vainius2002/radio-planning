@@ -225,7 +225,7 @@
                                 <td class="seasonal-index">
                                     <input type="number"
                                            class="seasonal-index-input"
-                                           value="{{ seasonal_indices.get(station.id, 1) }}"
+                                           value="{{ seasonal_indices.get(station.id ~ '_' ~ time_slot ~ '_false', 1) }}"
                                            min="0.5"
                                            max="3.0"
                                            step="0.01"
@@ -277,13 +277,13 @@
                                 <td class="seasonal-index">
                                     <input type="number"
                                            class="seasonal-index-input"
-                                           value="{{ seasonal_indices.get(station.id, 1) }}"
+                                           value="{{ seasonal_indices.get(station.id ~ '_' ~ time_slot ~ '_true', 1) }}"
                                            min="0.5"
                                            max="3.0"
                                            step="0.01"
                                            data-station-id="{{ station.id }}"
                                            data-time-slot="{{ time_slot }}"
-                                           data-is-weekend="false"
+                                           data-is-weekend="true"
                                            style="width: 60px; border: none; background: transparent; text-align: center;">
                                 </td>
                                 <td class="price-with-index">1.00</td>

@@ -433,17 +433,35 @@ def export_plan_to_excel(plan):
         key = (spot.station_id, spot.time_slot, spot.is_weekend_row)
         if key not in spot_groups:
             # Get captured seasonal_index and special_index from PlanStationData
+            # Since all months for a station/time_slot should have the same seasonal_index after user edits,
+            # we can get any record (they're all updated together when user changes the value)
             from app.models import PlanStationData
-            captured_data = PlanStationData.query.filter_by(
+
+            # Debug: Check all records for this combination
+            all_records = PlanStationData.query.filter_by(
                 plan_id=plan.id,
                 station_id=spot.station_id,
                 time_slot=spot.time_slot,
                 is_weekend=spot.is_weekend_row
-            ).first()
+            ).all()
+
+            print(f"\n--- Export Debug for Station {spot.station.name}, Time {spot.time_slot}, Weekend {spot.is_weekend_row} ---")
+            print(f"  Found {len(all_records)} PlanStationData records")
+
+            for record in all_records:
+                print(f"    Month {record.month}: seasonal_index = {record.seasonal_index}")
+
+            captured_data = all_records[0] if all_records else None
 
             # Use captured indices if available, otherwise fallback to defaults
             seasonal_index = captured_data.seasonal_index if captured_data else 1.0
             special_index = captured_data.special_index if captured_data else 1.0
+
+            print(f"  Using seasonal_index = {seasonal_index} for export")
+
+            # Calculate TRP price correctly: base_price / trp
+            price_per_trp = (spot.base_price / spot.trp) if spot.trp > 0 else 0
+            print(f"  TRP calculation: {spot.base_price} / {spot.trp} = {price_per_trp}")
 
             spot_groups[key] = {
                 'station_name': clean_text(spot.station.name),
@@ -458,7 +476,7 @@ def export_plan_to_excel(plan):
                 'seasonal_index': seasonal_index,
                 'special_index': special_index,
                 'final_price': spot.final_price,
-                'price_per_trp': spot.price_per_trp
+                'price_per_trp': price_per_trp
             }
 
         spot_groups[key]['spots_by_date'][spot.date] = spot.spot_count

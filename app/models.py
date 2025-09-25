@@ -213,9 +213,9 @@ class RadioSpot(db.Model):
         price_after_our = self.price_with_index * (1 - our_discount / 100)
         self.final_price = price_after_our * (1 - client_discount / 100)
 
-        # Calculate price per TRP using formula: basePrice / TRP / 100
+        # Calculate price per TRP using formula: basePrice / TRP
         if self.trp > 0:
-            self.price_per_trp = self.base_price / self.trp / 100
+            self.price_per_trp = self.base_price / self.trp
 
         return self.final_price
 

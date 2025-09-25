@@ -41,7 +41,7 @@ def new_plan():
 @main_bp.route('/planning/<int:plan_id>')
 def view_plan(plan_id):
     """View and edit specific radio plan"""
-    from app.models import SeasonalIndex
+    from app.models import SeasonalIndex, PlanStationData
 
     plan = RadioPlan.query.get_or_404(plan_id)
 
@@ -53,18 +53,36 @@ def view_plan(plan_id):
     # Generate calendar data
     calendar_data = generate_calendar_data(plan)
 
-    # Get seasonal indices for each station's group
+    # Get seasonal indices from PlanStationData (user's edited values)
+    # We need to get it per station/time_slot/is_weekend combination
     seasonal_indices = {}
     for station in stations:
-        group_id = station.group_id
-        month = plan.start_date.month  # Use plan start month
+        for time_slot in time_slots:
+            for is_weekend in [False, True]:
+                # Create a key for this combination
+                key = f"{station.id}_{time_slot}_{is_weekend}"
 
-        # Try group-specific first, then global
-        seasonal = SeasonalIndex.query.filter_by(month=month, group_id=group_id, is_active=True).first()
-        if not seasonal:
-            seasonal = SeasonalIndex.query.filter_by(month=month, group_id=None, is_active=True).first()
+                # Get the PlanStationData record for this specific combination
+                plan_data = PlanStationData.query.filter_by(
+                    plan_id=plan.id,
+                    station_id=station.id,
+                    time_slot=time_slot,
+                    is_weekend=is_weekend
+                ).first()
 
-        seasonal_indices[station.id] = seasonal.index_value if seasonal else 1.0
+                if plan_data:
+                    seasonal_indices[key] = plan_data.seasonal_index
+                else:
+                    # Fallback to global seasonal indices if no plan data exists
+                    group_id = station.group_id
+                    month = plan.start_date.month
+
+                    # Try group-specific first, then global
+                    seasonal = SeasonalIndex.query.filter_by(month=month, group_id=group_id, is_active=True).first()
+                    if not seasonal:
+                        seasonal = SeasonalIndex.query.filter_by(month=month, group_id=None, is_active=True).first()
+
+                    seasonal_indices[key] = seasonal.index_value if seasonal else 1.0
 
     return render_template('view_plan.html',
                          plan=plan,

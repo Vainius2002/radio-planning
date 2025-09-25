@@ -443,7 +443,7 @@ def update_spot_count(plan_id):
                 spot.final_price = price_after_our * (1 - plan.client_discount / 100)
 
                 if spot.trp > 0:
-                    spot.price_per_trp = spot.base_price / spot.trp * 100
+                    spot.price_per_trp = spot.base_price / spot.trp
             else:
                 # No captured data available - set default values
                 spot.grp = 0
@@ -496,6 +496,7 @@ def update_spot_count(plan_id):
 def export_plan(plan_id):
     """Export plan to Excel"""
     try:
+        print(f"\n=== STARTING EXPORT FOR PLAN {plan_id} ===")
         plan = RadioPlan.query.get_or_404(plan_id)
         output = export_plan_to_excel(plan)
 
@@ -814,7 +815,9 @@ def update_plan_seasonal_index(plan_id):
         is_weekend = data.get('is_weekend', False)
         new_seasonal_index = data.get('seasonal_index')
 
-        print(f"Updating seasonal index for plan {plan_id}, station {station_id}, time slot {time_slot}, is_weekend {is_weekend}")
+        print(f"=== UPDATING SEASONAL INDEX ===")
+        print(f"Plan: {plan_id}, Station: {station_id}, Time: {time_slot}, Weekend: {is_weekend}")
+        print(f"New value: {new_seasonal_index}")
 
         # Find ALL PlanStationData records for this station/time_slot (across all months)
         plan_data_records = PlanStationData.query.filter_by(
@@ -827,10 +830,12 @@ def update_plan_seasonal_index(plan_id):
         if plan_data_records:
             # Update seasonal index for all months
             for plan_data in plan_data_records:
+                old_value = plan_data.seasonal_index
                 plan_data.seasonal_index = new_seasonal_index
+                print(f"  Month {plan_data.month}: {old_value} -> {new_seasonal_index}")
 
             db.session.commit()
-            print(f"Updated seasonal index to {new_seasonal_index} for {len(plan_data_records)} month records")
+            print(f"Successfully updated {len(plan_data_records)} records")
             return jsonify({'success': True, 'seasonal_index': new_seasonal_index, 'records_updated': len(plan_data_records)})
         else:
             print(f"No plan data found for plan {plan_id}, station {station_id}, time slot {time_slot}, is_weekend {is_weekend}")
