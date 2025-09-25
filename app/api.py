@@ -914,3 +914,37 @@ def get_station_seasonal_index(station_id, month):
     except Exception as e:
         print(f"Error getting seasonal index: {str(e)}")
         return jsonify({'error': f'Error getting seasonal index: {str(e)}'}), 500
+
+
+@api_bp.route('/plans/<int:plan_id>/discounts', methods=['PUT'])
+def update_plan_discounts(plan_id):
+    """Update our discount and client discount for a plan"""
+    try:
+        data = request.get_json()
+        our_discount = data.get('our_discount')
+        client_discount = data.get('client_discount')
+
+        print(f"=== UPDATING PLAN DISCOUNTS ===")
+        print(f"Plan: {plan_id}")
+        print(f"Our discount: {our_discount}%, Client discount: {client_discount}%")
+
+        plan = RadioPlan.query.get_or_404(plan_id)
+
+        # Update discount values
+        if our_discount is not None:
+            plan.our_discount = float(our_discount)
+        if client_discount is not None:
+            plan.client_discount = float(client_discount)
+
+        db.session.commit()
+        print(f"Successfully updated discounts: our={plan.our_discount}%, client={plan.client_discount}%")
+
+        return jsonify({
+            'success': True,
+            'our_discount': plan.our_discount,
+            'client_discount': plan.client_discount
+        })
+
+    except Exception as e:
+        print(f"Error updating discounts: {str(e)}")
+        return jsonify({'error': f'Error updating discounts: {str(e)}'}), 500

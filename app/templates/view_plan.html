@@ -1908,39 +1908,66 @@ function applyDiscountsToAll() {
     const ourDiscount = parseFloat(document.getElementById('globalOurDiscount').value) || 0;
     const clientDiscount = parseFloat(document.getElementById('globalClientDiscount').value) || 0;
 
-    // Update all discount cells in the table
-    const ourDiscountCells = document.querySelectorAll('.our-discount-percent');
-    const clientDiscountCells = document.querySelectorAll('.client-discount-percent');
+    console.log(`Applying discounts: Our ${ourDiscount}%, Client ${clientDiscount}%`);
 
-    ourDiscountCells.forEach(cell => {
-        cell.textContent = ourDiscount + '%';
-    });
-
-    clientDiscountCells.forEach(cell => {
-        cell.textContent = clientDiscount + '%';
-    });
-
-    // Recalculate all row prices with new discounts
-    const allRows = document.querySelectorAll('.planning-row');
-    allRows.forEach(row => {
-        recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount);
-    });
-
-    // Update station totals
-    const stationIds = new Set();
-    allRows.forEach(row => {
-        const stationId = row.dataset.stationId;
-        if (stationId) {
-            stationIds.add(stationId);
+    // Save to database first
+    fetch(`/api/plans/{{ plan.id }}/discounts`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            our_discount: ourDiscount,
+            client_discount: clientDiscount
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    });
+        return response.json();
+    })
+    .then(data => {
+        console.log('Discounts saved to database:', data);
 
-    stationIds.forEach(stationId => {
-        updateStationTotals(stationId);
-    });
+        // Update all discount cells in the table
+        const ourDiscountCells = document.querySelectorAll('.our-discount-percent');
+        const clientDiscountCells = document.querySelectorAll('.client-discount-percent');
 
-    // Show success message
-    showNotification('Nuolaidos pritaikytos visoms eilutėms!', 'success');
+        ourDiscountCells.forEach(cell => {
+            cell.textContent = ourDiscount + '%';
+        });
+
+        clientDiscountCells.forEach(cell => {
+            cell.textContent = clientDiscount + '%';
+        });
+
+        // Recalculate all row prices with new discounts
+        const allRows = document.querySelectorAll('.planning-row');
+        allRows.forEach(row => {
+            recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount);
+        });
+
+        // Update station totals
+        const stationIds = new Set();
+        allRows.forEach(row => {
+            const stationId = row.dataset.stationId;
+            if (stationId) {
+                stationIds.add(stationId);
+            }
+        });
+
+        stationIds.forEach(stationId => {
+            updateStationTotals(stationId);
+        });
+
+        // Show success message
+        showNotification('Nuolaidos išsaugotos ir pritaikytos visoms eilutėms!', 'success');
+    })
+    .catch(error => {
+        console.error('Error saving discounts:', error);
+        showNotification('Klaida išsaugant nuolaidas: ' + error.message, 'error');
+    });
 }
 
 function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
