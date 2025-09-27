@@ -787,6 +787,13 @@ function initializePage() {
                     console.log('=== CALLING updateAllStationTotals after page load ===');
                     updateAllStationTotals();
 
+                    // Calculate prices for all rows to show 0.00 instead of 0
+                    console.log('=== CALCULATING INITIAL PRICES FOR ALL ROWS ===');
+                    const allPlanningRows = document.querySelectorAll('.planning-row');
+                    allPlanningRows.forEach(row => {
+                        calculateRowPrices(row);
+                    });
+
                     // Start the persistent spot count loader
                     startPersistentSpotLoader();
                 }, 500);
@@ -1313,15 +1320,53 @@ function applyStationPricesOnLoad(stationId, prices) {
 function calculateRowPrices(row) {
     // Get discount values from inputs (dynamic)
     const ourDiscount = parseFloat(document.getElementById('globalOurDiscount')?.value || {{ plan.our_discount }});
-    const clientDiscount = parseFloat(document.getElementById('globalClientDiscount')?.value || {{ plan.client_discount }});
+
+    // DEBUG: Check if client discount element exists and has proper value
+    const clientDiscountElement = document.getElementById('globalClientDiscount');
+    let clientDiscount;
+    if (clientDiscountElement && clientDiscountElement.value !== '') {
+        clientDiscount = parseFloat(clientDiscountElement.value);
+    } else {
+        clientDiscount = {{ plan.client_discount }};
+    }
+
+    console.log(`DISCOUNT DEBUG: ourDiscount=${ourDiscount}, clientDiscount=${clientDiscount}, element exists=${!!clientDiscountElement}, element value="${clientDiscountElement?.value}"`);
 
     // Get values from the row
     const basePrice = parseFloat(row.querySelector('.base-price').textContent || 0);
     const seasonalIndexInput = row.querySelector('.seasonal-index-input');
     const seasonalIndex = parseFloat(seasonalIndexInput ? seasonalIndexInput.value : 1.0);
-    const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
-    console.log(`calculateRowPrices: basePrice=${basePrice}, seasonalIndex=${seasonalIndex}, spotCount=${spotCount}`);
+    // Calculate spot count from calendar cells directly (single source of truth)
+    const calendarCells = row.querySelectorAll('.calendar-spot-cell');
+    let spotCount = 0;
+    calendarCells.forEach(cell => {
+        const spotNumber = cell.querySelector('.calendar-spot-number');
+        const count = parseInt(spotNumber?.textContent || 0);
+        spotCount += count;
+    });
+
+    // Update the display to match our calculation
+    row.querySelector('.spot-number').textContent = spotCount;
+
+    console.log(`🔥 calculateRowPrices DEBUG 🔥`);
+    console.log(`basePrice: ${basePrice} (type: ${typeof basePrice})`);
+    console.log(`seasonalIndex: ${seasonalIndex} (type: ${typeof seasonalIndex})`);
+    console.log(`spotCount: ${spotCount} (type: ${typeof spotCount})`);
+    console.log(`spotCount element text: "${row.querySelector('.spot-number').textContent}"`);
+
+    // Let's also manually check calendar cells from this function
+    const manualCalendarCells = row.querySelectorAll('.calendar-spot-cell');
+    let manualTotal = 0;
+    manualCalendarCells.forEach((cell, index) => {
+        const cellSpotNumber = cell.querySelector('.calendar-spot-number');
+        const cellValue = parseInt(cellSpotNumber?.textContent || 0);
+        if (cellValue > 0) {
+            console.log(`Manual check - Cell ${index}: ${cellValue}`);
+        }
+        manualTotal += cellValue;
+    });
+    console.log(`Manual calendar total: ${manualTotal}`);
 
     // Spec. indeksas should always be 1.0
     const specIndex = 1.0;
@@ -1334,13 +1379,17 @@ function calculateRowPrices(row) {
     const grossPrice = spotCount * basePrice * seasonalIndex * specIndex;
     row.querySelector('.final-price').textContent = grossPrice.toFixed(2);
 
-    // Kaina po mūsų nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
-    const priceAfterOurDiscount = spotCount * basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
+    // Kaina po mūsų nuolaidos = gross kaina * (1 - mūsų nuolaida / 100)
+    const priceAfterOurDiscount = grossPrice * (1 - ourDiscount / 100);
     row.querySelector('.total-before-discount').textContent = priceAfterOurDiscount.toFixed(2);
 
-    // Kaina po kliento nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
-    const finalPrice = priceAfterOurDiscount * (1 - clientDiscount / 100);
-    row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
+    // Kaina po kliento nuolaidos = gross kaina * (1 - kliento nuolaida / 100)
+    console.log(`CLIENT CALC: gross=${grossPrice}, discount=${clientDiscount}%, result=${grossPrice} * (1 - ${clientDiscount}/100) = ${grossPrice * (1 - clientDiscount / 100)}`);
+
+    const finalPrice = grossPrice * (1 - clientDiscount / 100);
+
+    const clientDiscountCell = row.querySelector('.total-after-discount');
+    clientDiscountCell.textContent = finalPrice.toFixed(2);
 
     // Calculate TRP price if TRP is available using formula: įkainis / TRP
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
@@ -1482,8 +1531,9 @@ function saveSpotWithCurrentData(stationId, timeSlot, date, isWeekend, row) {
 }
 
 function deleteSpotFromBackend(stationId, timeSlot, date) {
-    // TODO: Implement spot deletion API if needed
-    console.log(`Deleting spot: station ${stationId}, slot ${timeSlot}, date ${date}`);
+    // Use the existing update API with count 0 to delete (debounced)
+    const isWeekend = new Date(date).getDay() % 6 === 0; // Saturday or Sunday
+    debouncedSpotUpdate(stationId, timeSlot, date, 0, isWeekend);
 }
 
 function updateCalendarSpotCounts() {
@@ -1975,6 +2025,8 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     const basePrice = parseFloat(row.querySelector('.base-price').textContent || 0);
     const seasonalIndexInput = row.querySelector('.seasonal-index-input');
     const seasonalIndex = parseFloat(seasonalIndexInput ? seasonalIndexInput.value : 1.0);
+
+    // Get spot count from display
     const spotCount = parseInt(row.querySelector('.spot-number').textContent || 0);
 
     // Spec. ikainis (price-with-index) should always be 1.0
@@ -1987,13 +2039,17 @@ function recalculateRowPricesWithDiscounts(row, ourDiscount, clientDiscount) {
     const grossPrice = spotCount * basePrice * seasonalIndex * specIndex;
     row.querySelector('.final-price').textContent = grossPrice.toFixed(2);
 
-    // Kaina po mūsų nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida)
-    const priceAfterOurDiscount = spotCount * basePrice * seasonalIndex * specIndex * (1 - ourDiscount / 100);
+    // Kaina po mūsų nuolaidos = gross kaina * (1 - mūsų nuolaida / 100)
+    const priceAfterOurDiscount = grossPrice * (1 - ourDiscount / 100);
     row.querySelector('.total-before-discount').textContent = priceAfterOurDiscount.toFixed(2);
 
-    // Kaina po kliento nuolaidos = klipų skaičius * įkainis * sez. indeksas * spec. indeksas * (1 - mūsų nuolaida) * (1 - kliento nuolaida)
-    const finalPrice = priceAfterOurDiscount * (1 - clientDiscount / 100);
-    row.querySelector('.total-after-discount').textContent = finalPrice.toFixed(2);
+    // Kaina po kliento nuolaidos = gross kaina * (1 - kliento nuolaida / 100)
+    console.log(`CLIENT CALC: gross=${grossPrice}, discount=${clientDiscount}%, result=${grossPrice} * (1 - ${clientDiscount}/100) = ${grossPrice * (1 - clientDiscount / 100)}`);
+
+    const finalPrice = grossPrice * (1 - clientDiscount / 100);
+
+    const clientDiscountCell = row.querySelector('.total-after-discount');
+    clientDiscountCell.textContent = finalPrice.toFixed(2);
 
     // Calculate TRP price if TRP is available using formula: įkainis / TRP
     const trp = parseFloat(row.querySelector('.trp').textContent || 0);
@@ -2338,20 +2394,43 @@ $(document).on('click', '.btn-calendar-plus, .btn-calendar-minus', function() {
         isWeekendRow: isWeekendRow
     });
 
-    // Update spot count in database - pass the row context
-    updateSpotCountInDatabaseWithContext(stationId, timeSlot, selectedDate, newCount, isWeekendRow);
+    // Update spot count in database - pass the row context (debounced)
+    debouncedSpotUpdate(stationId, timeSlot, selectedDate, newCount, isWeekendRow);
 
     // Update seasonal index based on the calendar date's month
     updateSeasonalIndexForDate(stationId, selectedDate, isWeekendRow);
 
     // Update the corresponding main spot count display - but only for the current row type
     console.log(`CALLING updateMainSpotCountDisplayForRowType with isWeekendRow=${isWeekendRow}`);
-    updateMainSpotCountDisplayForRowType(stationId, timeSlot, selectedDate, isWeekendRow);
+    // Use setTimeout to ensure DOM update completes before calculating totals
+    setTimeout(() => {
+        updateMainSpotCountDisplayForRowType(stationId, timeSlot, selectedDate, isWeekendRow);
+    }, 10);
     console.log('==================== CALENDAR CLICK END ====================');
 });
 
 // Global variable to store captured seasonal indices
 let capturedSeasonalIndices = {};
+
+// Debouncing mechanism for spot updates
+let updateTimeouts = new Map();
+
+function debouncedSpotUpdate(stationId, timeSlot, date, spotCount, isWeekendRow) {
+    const updateKey = `${stationId}_${timeSlot}_${date}_${isWeekendRow}`;
+
+    // Clear existing timeout for this update
+    if (updateTimeouts.has(updateKey)) {
+        clearTimeout(updateTimeouts.get(updateKey));
+    }
+
+    // Set new timeout
+    const timeoutId = setTimeout(() => {
+        updateSpotCountInDatabaseWithContext(stationId, timeSlot, date, spotCount, isWeekendRow);
+        updateTimeouts.delete(updateKey);
+    }, 300); // 300ms delay
+
+    updateTimeouts.set(updateKey, timeoutId);
+}
 
 function getCapturedSeasonalIndex(stationId, month) {
     // Look up captured seasonal index for station and month
@@ -2388,8 +2467,8 @@ function updateSeasonalIndexForDate(stationId, selectedDate, isWeekendRow) {
                     const isWeekend = row.getAttribute('data-is-weekend');
                     console.log(`Updated seasonal index for station ${stationId}, time slot ${timeSlot} (${isWeekend === 'true' ? 'weekend' : 'weekday'} row) from ${oldValue} to ${seasonalIndex.toFixed(2)} (CAPTURED from plan creation)`);
 
-                    // Recalculate prices for this row with the captured seasonal index
-                    calculateRowPrices(row);
+                    // DON'T recalculate prices here - it will be done by updateMainSpotCountDisplayForRowType
+                    // calculateRowPrices(row);
                 }
             }
         });
@@ -2429,15 +2508,13 @@ function updateMainSpotCountDisplay(stationId, timeSlot, selectedDate) {
             }
         });
 
-        // Update the main spot count display
-        mainRow.find('.spot-number').text(totalSpots);
+        // Update the main spot count display and recalculate prices using the proper function
+        console.log(`Calling calculateRowTotalsOnly for spot count update`);
+        calculateRowTotalsOnly(mainRow[0]); // Convert jQuery object to DOM element
 
         // Show which row was updated
         const rowType = mainRow.find('td:nth-child(3)').text(); // Should be "I-V" or "VI-VII"
-        console.log(`Updated row with type "${rowType}" for station ${stationId}, slot ${timeSlot}: ${totalSpots} spots`);
-
-        // Recalculate row totals
-        recalculateRowTotals(mainRow);
+        console.log(`Updated row with type "${rowType}" for station ${stationId}, slot ${timeSlot}`);
     }
 }
 
@@ -2445,6 +2522,24 @@ function updateMainSpotCountDisplayForRowType(stationId, timeSlot, selectedDate,
     // Use the row type passed from the calendar click, don't try to determine from date
     console.log(`====== UPDATE MAIN DISPLAY: ${isWeekendRow ? 'WEEKEND' : 'WEEKDAY'} ROW ======`);
     console.log(`Station: ${stationId}, Time: ${timeSlot}, Date: ${selectedDate}`);
+
+    // DEBUG: Check what the calendar cells actually contain before calculating
+    const debugRow = $(`.planning-row[data-station-id="${stationId}"][data-time-slot="${timeSlot}"][data-is-weekend="${isWeekendRow}"]`);
+    if (debugRow.length > 0) {
+        console.log('DEBUG: Found target row');
+        const calendarCells = debugRow.find('.calendar-spot-cell');
+        console.log(`DEBUG: Found ${calendarCells.length} calendar cells in row`);
+        let debugTotal = 0;
+        calendarCells.each(function(index) {
+            const cellValue = parseInt($(this).find('.calendar-spot-number').text()) || 0;
+            if (cellValue > 0) {
+                console.log(`DEBUG: Cell ${index} has value: ${cellValue}`);
+            }
+            debugTotal += cellValue;
+        });
+        console.log(`DEBUG: Total spots in calendar cells: ${debugTotal}`);
+        console.log(`DEBUG: Current .spot-number display: ${debugRow.find('.spot-number').text()}`);
+    }
 
     // Find ALL rows for debugging
     const allRows = $(`.planning-row[data-station-id="${stationId}"][data-time-slot="${timeSlot}"]`);
@@ -2498,8 +2593,8 @@ function updateMainSpotCountDisplayForRowType(stationId, timeSlot, selectedDate,
         const rowType = mainRow.find('td:nth-child(3)').text(); // Should be "I-V" or "VI-VII"
         console.log(`UPDATED ROW: type="${rowType}", old value=${oldValue}, new value=${totalSpots}`);
 
-        // Recalculate row totals
-        recalculateRowTotals(mainRow);
+        // Recalculate row totals and prices properly
+        calculateRowTotalsOnly(mainRow[0]); // Convert jQuery object to DOM element
         console.log('====== UPDATE COMPLETE ======');
     } else {
         console.log('NO MATCHING ROW FOUND!');

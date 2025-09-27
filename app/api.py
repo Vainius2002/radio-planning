@@ -145,7 +145,7 @@ def create_plan():
     """Create a new radio plan"""
     try:
         data = request.json
-        print(f"=== CREATE PLAN API CALLED ===")
+        # Create plan API called
         print(f"Received data: {data}")
 
         if not data:
@@ -204,7 +204,7 @@ def create_plan():
         return jsonify({'id': plan.id, 'message': 'Plan created successfully'}), 201
 
     except Exception as e:
-        print(f"ERROR creating plan: {str(e)}")
+        # Error creating plan
         db.session.rollback()
         return jsonify({'error': f'Error creating plan: {str(e)}'}), 500
 
@@ -306,21 +306,14 @@ def add_spot():
 def update_spot_count(plan_id):
     """Update spot count for a time slot"""
     try:
-        # Add a simple file log to see if we're even reaching this endpoint
-        with open('/tmp/radio_debug.log', 'a') as f:
-            f.write(f"UPDATE_SPOT_COUNT called at {datetime.now()} for plan {plan_id}\n")
-            f.flush()
+        # Update spot count endpoint
 
         plan = RadioPlan.query.get_or_404(plan_id)
 
-        with open('/tmp/radio_debug.log', 'a') as f:
-            f.write(f"Plan loaded: {plan.id}\n")
-            f.flush()
+        # Plan loaded
         data = request.json
 
-        print(f"=== UPDATE SPOT COUNT API CALLED ===")
-        print(f"Plan ID: {plan_id}")
-        print(f"Received data: {data}")
+        # API called - data processed
 
         station_id = data.get('station_id')
         time_slot = data.get('time_slot')
@@ -328,11 +321,10 @@ def update_spot_count(plan_id):
         new_count = data.get('spot_count', 0)
         is_weekend_row = data.get('is_weekend_row', False)
 
-        print(f"Parsed - Station: {station_id} (type: {type(station_id)}), Time: {time_slot}, Date: {date}, Count: {new_count}, Weekend Row: {is_weekend_row}")
+        # Data parsed successfully
 
         if not all([station_id, time_slot, date]):
-            print("ERROR: Missing required fields")
-            print(f"station_id: {station_id}, time_slot: {time_slot}, date: {date}")
+            # Missing required fields
             return jsonify({'error': f'Missing required fields - station_id: {station_id}, time_slot: {time_slot}, date: {date}'}), 400
 
         # Ensure station_id is an integer
@@ -340,25 +332,22 @@ def update_spot_count(plan_id):
             station_id = int(station_id)
             new_count = int(new_count)
         except (ValueError, TypeError) as e:
-            print(f"ERROR: Invalid data types - station_id: {station_id}, new_count: {new_count}")
+            # Invalid data types
             return jsonify({'error': f'Invalid data types: {str(e)}'}), 400
 
         # Check if station exists
         from app.models import RadioStation
         station = RadioStation.query.get(station_id)
         if not station:
-            print(f"ERROR: Station {station_id} not found")
+            # Station not found
             return jsonify({'error': f'Station {station_id} not found'}), 404
 
-        print(f"Found station: {station.id} - {station.name}")
+        # Station found
 
         # Parse date
-        print(f"Parsing date: {date}")
         spot_date = datetime.strptime(date, '%Y-%m-%d').date()
-        print(f"Parsed spot_date: {spot_date}")
 
         # Find existing spot or create new one
-        print(f"Looking for existing spot...")
         spot = RadioSpot.query.filter_by(
             plan_id=plan_id,
             station_id=station_id,
@@ -366,10 +355,9 @@ def update_spot_count(plan_id):
             date=spot_date,
             is_weekend_row=is_weekend_row
         ).first()
-        print(f"Found existing spot: {spot}")
 
         if new_count <= 0:
-            print(f"Removing spot (count = {new_count})")
+            # Removing spot
             # Remove spot if count is 0 or negative
             if spot:
                 db.session.delete(spot)
@@ -377,31 +365,26 @@ def update_spot_count(plan_id):
             return jsonify({'success': True, 'spot_count': 0}), 200
 
         if spot:
-            print(f"Updating existing spot")
+            # Updating existing spot
             # Update existing spot
             spot.spot_count = new_count
         else:
-            print(f"Creating new spot")
+            # Creating new spot
             # Create new spot
             clip_duration = 30
 
-            with open('/tmp/radio_debug.log', 'a') as f:
-                f.write(f"About to check clips, plan.clips: {plan.clips}\n")
-                f.flush()
+            # Checking clips
 
             if plan.clips and plan.clips.count() > 0:
                 first_clip = plan.clips.first()
 
-                with open('/tmp/radio_debug.log', 'a') as f:
-                    f.write(f"First clip: {first_clip}\n")
-                    if first_clip:
-                        f.write(f"First clip name: {first_clip.name if hasattr(first_clip, 'name') else 'NO NAME ATTR'}\n")
-                    f.flush()
+                # First clip found
 
                 if first_clip and first_clip.duration:
                     clip_duration = first_clip.duration
                 else:
-                    print(f"WARNING: First clip has no duration, using default 30s")
+                    # Using default 30s duration
+                    pass
 
             spot = RadioSpot(
                 plan_id=plan_id,
@@ -414,10 +397,7 @@ def update_spot_count(plan_id):
                 is_weekend_row=is_weekend_row
             )
 
-            with open('/tmp/radio_debug.log', 'a') as f:
-                f.write(f"Created spot with station_id: {station_id}, spot.station: {spot.station}\n")
-                f.write(f"Station lookup result: {RadioStation.query.get(station_id)}\n")
-                f.flush()
+            # Spot created
 
             # Calculate metrics based on captured plan data
             from app.models import PlanStationData
@@ -454,19 +434,17 @@ def update_spot_count(plan_id):
                 spot.final_price = 0
                 spot.price_per_trp = 0
 
-            print(f"Adding spot to session: {spot}")
+            # Adding spot to session
             db.session.add(spot)
 
-        print(f"Committing to database...")
         db.session.commit()
-        print(f"Commit successful!")
 
         # Ensure spot and its relationships are properly loaded
         db.session.refresh(spot)
 
         # Validate the spot has a valid station relationship
         if not spot.station:
-            print(f"ERROR: Spot {spot.id} has no station relationship (station_id: {spot.station_id})")
+            # Spot has invalid station reference
             return jsonify({'error': f'Spot has invalid station reference (station_id: {spot.station_id})'}), 500
 
         return jsonify({
@@ -478,16 +456,10 @@ def update_spot_count(plan_id):
         }), 200
 
     except Exception as e:
-        print(f"ERROR in update_spot_count: {str(e)}")
-        print(f"Exception type: {type(e)}")
         import traceback
         traceback_str = traceback.format_exc()
-        print(f"Traceback: {traceback_str}")
 
-        with open('/tmp/radio_debug.log', 'a') as f:
-            f.write(f"ERROR: {str(e)}\n")
-            f.write(f"Full traceback:\n{traceback_str}\n")
-            f.flush()
+        # Error logged
 
         db.session.rollback()
         return jsonify({'error': f'Error updating spot count: {str(e)}'}), 500
@@ -496,7 +468,7 @@ def update_spot_count(plan_id):
 def export_plan(plan_id):
     """Export plan to Excel"""
     try:
-        print(f"\n=== STARTING EXPORT FOR PLAN {plan_id} ===")
+        # Starting export
         plan = RadioPlan.query.get_or_404(plan_id)
         output = export_plan_to_excel(plan)
 
@@ -815,7 +787,7 @@ def update_plan_seasonal_index(plan_id):
         is_weekend = data.get('is_weekend', False)
         new_seasonal_index = data.get('seasonal_index')
 
-        print(f"=== UPDATING SEASONAL INDEX ===")
+        # Updating seasonal index
         print(f"Plan: {plan_id}, Station: {station_id}, Time: {time_slot}, Weekend: {is_weekend}")
         print(f"New value: {new_seasonal_index}")
 
@@ -924,7 +896,7 @@ def update_plan_discounts(plan_id):
         our_discount = data.get('our_discount')
         client_discount = data.get('client_discount')
 
-        print(f"=== UPDATING PLAN DISCOUNTS ===")
+        # Updating plan discounts
         print(f"Plan: {plan_id}")
         print(f"Our discount: {our_discount}%, Client discount: {client_discount}%")
 
