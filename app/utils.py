@@ -686,9 +686,7 @@ def export_group_to_excel(group):
         for col in range(7, 9):
             worksheet.write(row, col, '', info_header_format)
 
-    for row in range(3, 5):
-        worksheet.write(row, 14, '', info_header_format)
-        worksheet.write(row, 15, '', info_header_center_format)
+    # Remove the klipo trukmė and pavadinimas header rows since they're already in the table columns
 
     worksheet.write(0, 0, 'Agentūra:', info_format)
     worksheet.merge_range('B1:C1', 'BPN LT', info_header_left_format)
@@ -707,8 +705,6 @@ def export_group_to_excel(group):
     worksheet.merge_range('B4:C4', 'Visos kampanijos', info_header_left_format)
     worksheet.write(3, 7, 'TG dalis (%):', info_format)
     worksheet.write(3, 8, '60.2%', info_header_format)
-    worksheet.write(3, 14, 'Klipo trukmė (-s):', info_header_format)
-    worksheet.write(3, 15, 'Klipo pavadinimas:', info_header_format)
 
     # Get all plans that have spots with stations from this group
     station_ids = [station.id for station in group.stations]
@@ -738,25 +734,6 @@ def export_group_to_excel(group):
     worksheet.write(4, 7, 'TG imtis:', info_format)
     worksheet.write(4, 8, '1759.35', info_header_format)
 
-    # Collect all unique clip names and durations
-    clip_names = []
-    clip_durations = []
-    for plan in plans_with_spots:
-        if plan.clips.count() > 0:
-            for clip in plan.clips:
-                if clip.name not in clip_names:
-                    clip_names.append(clip.name)
-                if clip.duration not in clip_durations:
-                    clip_durations.append(clip.duration)
-
-    # Display combined clip info
-    clip_duration_text = ', '.join(str(d) for d in clip_durations) if clip_durations else '30'
-    clip_name_text = ', '.join(clean_text(name) for name in clip_names[:3])  # Show first 3 clip names
-    if len(clip_names) > 3:
-        clip_name_text += f' (+{len(clip_names) - 3} kiti)'
-
-    worksheet.write(4, 14, clip_duration_text, info_header_format)
-    worksheet.write(4, 15, clip_name_text, info_header_center_format)
 
     worksheet.write(5, 0, 'Šalis:', info_format)
     worksheet.merge_range('B6:C6', 'Lietuva', info_header_left_format)
