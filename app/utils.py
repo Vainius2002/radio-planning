@@ -921,7 +921,7 @@ def export_group_to_excel(group):
             worksheet.write(row, 7, group_data['clip_duration'], data_format)  # Klipo trukmė
             worksheet.write(row, 8, group_data['grp'], data_format)  # GRP
             worksheet.write(row, 9, group_data['trp'], data_format)  # TRP
-            worksheet.write(row, 10, group_data['affinity'], data_format)  # Affinity
+            worksheet.write(row, 10, round(group_data['affinity'], 2), data_format)  # Affinity - rounded to 2 decimals
             worksheet.write(row, 11, group_data['price_per_trp'], number_blue_format)  # 1 sec. TRP kaina
             worksheet.write(row, 12, group_data['base_price'], money_format)  # Įkainis (EUR)
             worksheet.write(row, 13, group_data['seasonal_index'], number_green_format)  # Sez. indeksas
