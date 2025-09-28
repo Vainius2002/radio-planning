@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, send_file, current_app
 from app.models import db, RadioGroup, RadioStation, StationPrice, StationRating, RadioPlan, RadioSpot, RadioClip, SeasonalIndex
-from app.utils import fetch_campaigns_from_projects_crm, import_station_prices, import_station_ratings, export_plan_to_excel
+from app.utils import fetch_campaigns_from_projects_crm, import_station_prices, import_station_ratings, export_plan_to_excel, export_group_to_excel
 from datetime import datetime
 import os
 
@@ -488,6 +488,31 @@ def export_plan(plan_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Export failed: {str(e)}'}), 500
+
+@api_bp.route('/groups/<int:group_id>/export', methods=['GET'])
+def export_group(group_id):
+    """Export all plans for a group to Excel"""
+    try:
+        # Get the group
+        group = RadioGroup.query.get_or_404(group_id)
+        output = export_group_to_excel(group)
+
+        # Clean filename
+        clean_name = group.name.replace('\n', '').replace('\r', '').strip() if group.name else 'group'
+        clean_name = ''.join(c for c in clean_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        filename = f"radio_group_{clean_name}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        print(f"Group export error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Group export failed: {str(e)}'}), 500
 
 @api_bp.route('/seasonal-indices', methods=['GET'])
 def get_seasonal_indices():

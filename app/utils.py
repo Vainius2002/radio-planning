@@ -558,6 +558,420 @@ def export_plan_to_excel(plan):
 
     return output
 
+def export_group_to_excel(group):
+    """Export all radio plans for a group to Excel file"""
+    import xlsxwriter
+    from io import BytesIO
+    import pandas as pd
+    from app.models import RadioSpot, RadioPlan
+
+    output = BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+
+    # Clean group name for worksheet name
+    clean_name = group.name.replace('\n', '').replace('\r', '').strip() if group.name else 'Group'
+    clean_name = ' '.join(clean_name.split())  # Remove extra whitespace
+    clean_name = clean_name[:25] if len(clean_name) > 25 else clean_name  # Limit to 25 chars
+    worksheet_name = f'{clean_name}_All'
+
+    worksheet = workbook.add_worksheet(worksheet_name)
+
+    # Add formats with enhanced styling (same as single plan export)
+    header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#4472C4',
+        'font_color': 'white',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    subheader_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#8DB4E2',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    info_header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#D9E1F2',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    info_header_left_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#D9E1F2',
+        'border': 1,
+        'align': 'left',
+        'valign': 'vcenter'
+    })
+
+    info_header_center_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#D9E1F2',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    data_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    data_green_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#E2EFDA'
+    })
+
+    calendar_header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#FFE699',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+
+    calendar_data_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#FFF2CC'
+    })
+
+    data_blue_format = workbook.add_format({
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#DEEBF7'
+    })
+
+    info_format = workbook.add_format({
+        'bold': True,
+        'align': 'left',
+        'bg_color': '#D9E1F2',
+        'border': 1
+    })
+
+    date_format = workbook.add_format({'num_format': 'yyyy.mm.dd', 'border': 1})
+    date_left_format = workbook.add_format({'num_format': 'yyyy.mm.dd', 'border': 1, 'bg_color': '#D9E1F2', 'align': 'left'})
+    money_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right'})
+    money_green_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#E2EFDA'})
+    money_blue_format = workbook.add_format({'num_format': '€#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#DEEBF7'})
+    percent_format = workbook.add_format({'num_format': '0.0%', 'border': 1, 'align': 'center'})
+    percent_blue_format = workbook.add_format({'num_format': '0.0%', 'border': 1, 'align': 'center', 'bg_color': '#DEEBF7'})
+    number_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1, 'align': 'right'})
+    number_green_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#E2EFDA'})
+    number_blue_format = workbook.add_format({'num_format': '#,##0.00', 'border': 1, 'align': 'right', 'bg_color': '#DEEBF7'})
+
+    # Helper function to clean text values
+    def clean_text(text):
+        if not text:
+            return ''
+        return text.replace('\n', '').replace('\r', '').strip()
+
+    # Write header information
+    for row in range(7):
+        for col in range(3):
+            worksheet.write(row, col, '', info_header_format)
+
+    for row in range(1, 5):
+        for col in range(7, 9):
+            worksheet.write(row, col, '', info_header_format)
+
+    for row in range(3, 5):
+        worksheet.write(row, 14, '', info_header_format)
+        worksheet.write(row, 15, '', info_header_center_format)
+
+    worksheet.write(0, 0, 'Agentūra:', info_format)
+    worksheet.merge_range('B1:C1', 'BPN LT', info_header_left_format)
+
+    worksheet.write(1, 0, 'Radijo grupė:', info_format)
+    worksheet.merge_range('B2:C2', clean_text(group.name), info_header_left_format)
+    worksheet.write(1, 7, 'Tikslinė grupė', info_format)
+    worksheet.write(1, 8, 'Visos grupės', info_header_format)
+
+    worksheet.write(2, 0, 'Stočių skaičius:', info_format)
+    worksheet.merge_range('B3:C3', str(group.stations.count()), info_header_left_format)
+    worksheet.write(2, 7, "TG dydis ('000):", info_format)
+    worksheet.write(2, 8, '1059.49', info_header_format)
+
+    worksheet.write(3, 0, 'Suvestinė:', info_format)
+    worksheet.merge_range('B4:C4', 'Visos kampanijos', info_header_left_format)
+    worksheet.write(3, 7, 'TG dalis (%):', info_format)
+    worksheet.write(3, 8, '60.2%', info_header_format)
+    worksheet.write(3, 14, 'Klipo trukmė (-s):', info_header_format)
+    worksheet.write(3, 15, 'Klipo pavadinimas:', info_header_format)
+
+    # Get all plans that have spots with stations from this group
+    station_ids = [station.id for station in group.stations]
+
+    # Get all unique plans that have spots in this group's stations
+    plans_with_spots = RadioPlan.query.join(RadioSpot).filter(
+        RadioSpot.station_id.in_(station_ids),
+        RadioSpot.spot_count > 0
+    ).distinct().all()
+
+    if not plans_with_spots:
+        # Write a message if no data
+        worksheet.write(5, 0, 'Nėra planų su klipais šioje grupėje', info_format)
+        workbook.close()
+        output.seek(0)
+        return output
+
+    # Get the earliest and latest dates across all plans
+    all_start_dates = [plan.start_date for plan in plans_with_spots]
+    all_end_dates = [plan.end_date for plan in plans_with_spots]
+    earliest_date = min(all_start_dates)
+    latest_date = max(all_end_dates)
+
+    date_range = f"{earliest_date.strftime('%Y.%m.%d')}-{latest_date.strftime('%m.%d')}"
+    worksheet.write(4, 0, 'Laikotarpis:', info_format)
+    worksheet.merge_range('B5:C5', date_range, info_header_left_format)
+    worksheet.write(4, 7, 'TG imtis:', info_format)
+    worksheet.write(4, 8, '1759.35', info_header_format)
+
+    # Collect all unique clip names and durations
+    clip_names = []
+    clip_durations = []
+    for plan in plans_with_spots:
+        if plan.clips.count() > 0:
+            for clip in plan.clips:
+                if clip.name not in clip_names:
+                    clip_names.append(clip.name)
+                if clip.duration not in clip_durations:
+                    clip_durations.append(clip.duration)
+
+    # Display combined clip info
+    clip_duration_text = ', '.join(str(d) for d in clip_durations) if clip_durations else '30'
+    clip_name_text = ', '.join(clean_text(name) for name in clip_names[:3])  # Show first 3 clip names
+    if len(clip_names) > 3:
+        clip_name_text += f' (+{len(clip_names) - 3} kiti)'
+
+    worksheet.write(4, 14, clip_duration_text, info_header_format)
+    worksheet.write(4, 15, clip_name_text, info_header_center_format)
+
+    worksheet.write(5, 0, 'Šalis:', info_format)
+    worksheet.merge_range('B6:C6', 'Lietuva', info_header_left_format)
+
+    worksheet.write(6, 0, 'Savaitės pradžios data', info_format)
+    worksheet.merge_range('B7:C7', earliest_date.strftime('%Y.%m.%d'), info_header_left_format)
+
+    # Write main headers with wrap format
+    header_format_wrap = workbook.add_format({
+        'bold': True,
+        'bg_color': '#4472C4',
+        'font_color': 'white',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'text_wrap': True
+    })
+
+    # Additional column for Plan Name
+    worksheet.merge_range('A10:A12', 'Kampanija', header_format)
+    worksheet.merge_range('B10:B12', 'Kanalas', header_format)
+    worksheet.merge_range('C10:C12', 'Laikas', header_format)
+    worksheet.merge_range('D10:D12', 'Savaitės diena', header_format_wrap)
+    worksheet.merge_range('E10:E12', 'Klipų skaičius', header_format_wrap)
+    worksheet.merge_range('F10:F12', 'Klipo trukmė', header_format_wrap)
+    worksheet.merge_range('G10:G12', 'GRP', header_format)
+    worksheet.merge_range('H10:H12', 'TRP', header_format)
+    worksheet.merge_range('I10:I12', 'Affinity', header_format)
+    worksheet.merge_range('J10:J12', '1 sec.\nTRP\nkaina', header_format_wrap)
+    worksheet.merge_range('K10:K12', 'Įkainis\n(EUR)', header_format_wrap)
+    worksheet.merge_range('L10:L12', 'Sez.\nindeksas', header_format_wrap)
+    worksheet.merge_range('M10:M12', 'Spec.\nindeksas', header_format_wrap)
+    worksheet.merge_range('N10:N12', 'Gross\nkaina\n(EUR)', header_format_wrap)
+    worksheet.merge_range('O10:O12', 'Kaina po\nmūsų nuolaidos\n(EUR)', header_format_wrap)
+    worksheet.merge_range('P10:P12', 'Kaina po\nkliento nuolaidos\n(EUR)', header_format_wrap)
+    worksheet.merge_range('Q10:Q12', 'Mūsų\nnuolaida\n(%)', header_format_wrap)
+    worksheet.merge_range('R10:R12', 'Kliento\nnuolaida\n(%)', header_format_wrap)
+
+    # Add calendar headers starting from column 18 (shifted by 1 for campaign column)
+    start_col = 18
+    current_date = earliest_date
+    date_cols = {}
+
+    # Track when to write month names
+    last_month = None
+    month_names = {
+        1: 'Sausis', 2: 'Vasaris', 3: 'Kovas', 4: 'Balandis',
+        5: 'Gegužė', 6: 'Birželis', 7: 'Liepa', 8: 'Rugpjūtis',
+        9: 'Rugsėjis', 10: 'Spalis', 11: 'Lapkritis', 12: 'Gruodis'
+    }
+
+    while current_date <= latest_date:
+        # Write month name when month changes or at the beginning
+        if current_date.month != last_month:
+            worksheet.write(9, start_col, month_names[current_date.month], calendar_header_format)
+            last_month = current_date.month
+        else:
+            worksheet.write(9, start_col, '', calendar_header_format)
+
+        # Day abbreviations
+        day_abbrev = ['Pr', 'An', 'Tr', 'Ke', 'Pe', 'Se', 'Sk'][current_date.weekday()]
+        worksheet.write(10, start_col, day_abbrev, calendar_header_format)
+
+        # Write actual date number (day of month)
+        worksheet.write(11, start_col, current_date.day, calendar_header_format)
+
+        date_cols[current_date] = start_col
+        start_col += 1
+        current_date = current_date + pd.Timedelta(days=1)
+
+    # Collect all spots from all plans for this group's stations
+    all_spot_groups = {}
+
+    for plan in plans_with_spots:
+        # Get spots for this plan that belong to group's stations
+        spots_query = RadioSpot.query.filter(
+            RadioSpot.plan_id == plan.id,
+            RadioSpot.station_id.in_(station_ids),
+            RadioSpot.spot_count > 0
+        ).order_by('station_id', 'time_slot').all()
+
+        # Get clip info for this plan
+        clip_duration = 30  # Default
+        if plan.clips.count() > 0:
+            first_clip = plan.clips.first()
+            clip_duration = first_clip.duration
+
+        # Group spots by plan, station, and time_slot
+        for spot in spots_query:
+            key = (plan.id, spot.station_id, spot.time_slot, spot.is_weekend_row)
+
+            if key not in all_spot_groups:
+                from app.models import PlanStationData
+
+                # Get seasonal and special indices
+                all_records = PlanStationData.query.filter_by(
+                    plan_id=plan.id,
+                    station_id=spot.station_id,
+                    time_slot=spot.time_slot,
+                    is_weekend=spot.is_weekend_row
+                ).all()
+
+                captured_data = all_records[0] if all_records else None
+                seasonal_index = captured_data.seasonal_index if captured_data else 1.0
+                special_index = captured_data.special_index if captured_data else 1.0
+
+                # Calculate TRP price
+                price_per_trp = (spot.base_price / spot.trp) if spot.trp > 0 else 0
+
+                all_spot_groups[key] = {
+                    'plan_name': clean_text(plan.campaign_name),
+                    'station_name': clean_text(spot.station.name),
+                    'time_slot': clean_text(spot.time_slot),
+                    'weekday': clean_text('VI-VII' if spot.is_weekend_row else 'I-V'),
+                    'spots_by_date': {},
+                    'total_spots': 0,
+                    'clip_duration': clip_duration,
+                    'grp': spot.grp,
+                    'trp': spot.trp,
+                    'affinity': spot.affinity,
+                    'base_price': spot.base_price,
+                    'seasonal_index': seasonal_index,
+                    'special_index': special_index,
+                    'our_discount': plan.our_discount,
+                    'client_discount': plan.client_discount,
+                    'price_per_trp': price_per_trp
+                }
+
+            all_spot_groups[key]['spots_by_date'][spot.date] = spot.spot_count
+            all_spot_groups[key]['total_spots'] += spot.spot_count
+
+    # Write data rows starting from row 12
+    row = 12
+    for key, group_data in all_spot_groups.items():
+        if group_data['total_spots'] > 0:
+            # Calculate gross price
+            gross_price = group_data['total_spots'] * group_data['base_price'] * group_data['seasonal_index'] * group_data['special_index']
+
+            # Calculate price after our discount
+            price_after_our_discount = gross_price * (1 - group_data['our_discount'] / 100)
+
+            # Calculate price after client discount
+            price_after_client_discount = price_after_our_discount * (1 - group_data['client_discount'] / 100)
+
+            # Write main data
+            worksheet.write(row, 0, group_data['plan_name'], data_format)  # Kampanija
+            worksheet.write(row, 1, group_data['station_name'], data_format)  # Kanalas
+            worksheet.write(row, 2, group_data['time_slot'], data_format)  # Laikas
+            worksheet.write(row, 3, group_data['weekday'], data_format)  # Savaitės diena
+            worksheet.write(row, 4, group_data['total_spots'], data_format)  # Klipų skaičius
+            worksheet.write(row, 5, group_data['clip_duration'], data_format)  # Klipo trukmė
+            worksheet.write(row, 6, group_data['grp'], data_format)  # GRP
+            worksheet.write(row, 7, group_data['trp'], data_format)  # TRP
+            worksheet.write(row, 8, group_data['affinity'], data_format)  # Affinity
+            worksheet.write(row, 9, group_data['price_per_trp'], number_blue_format)  # 1 sec. TRP kaina
+            worksheet.write(row, 10, group_data['base_price'], money_format)  # Įkainis (EUR)
+            worksheet.write(row, 11, group_data['seasonal_index'], number_green_format)  # Sez. indeksas
+            worksheet.write(row, 12, group_data['special_index'], number_green_format)  # Spec. indeksas
+            worksheet.write(row, 13, gross_price, money_format)  # Gross kaina (EUR)
+            worksheet.write(row, 14, price_after_our_discount, money_format)  # Kaina po mūsų nuolaidos
+            worksheet.write(row, 15, price_after_client_discount, money_format)  # Kaina po kliento nuolaidos
+            worksheet.write(row, 16, group_data['our_discount'] / 100, percent_blue_format)  # Mūsų nuolaida (%)
+            worksheet.write(row, 17, group_data['client_discount'] / 100, percent_blue_format)  # Kliento nuolaida (%)
+
+            # Write calendar spots (shifted by 1 column)
+            for date, spot_count in group_data['spots_by_date'].items():
+                if date in date_cols:
+                    worksheet.write(row, date_cols[date], spot_count, calendar_data_format)
+
+            row += 1
+
+    # Add totals row
+    total_row = row + 1
+    worksheet.write(total_row, 0, 'Viso:', header_format)
+    worksheet.write(total_row, 1, '', header_format)
+    worksheet.write(total_row, 2, '', header_format)
+    worksheet.write(total_row, 3, '', header_format)
+
+    # Sum formulas for totals
+    worksheet.write_formula(total_row, 4, f'=SUM(E13:E{row})', header_format)  # Total spots
+    worksheet.write(total_row, 5, '', header_format)
+    worksheet.write_formula(total_row, 6, f'=SUM(G13:G{row})', header_format)  # Total GRP
+    worksheet.write_formula(total_row, 7, f'=SUM(H13:H{row})', header_format)  # Total TRP
+    worksheet.write(total_row, 8, '', header_format)
+    worksheet.write(total_row, 9, '', header_format)
+    worksheet.write(total_row, 10, '', header_format)
+    worksheet.write(total_row, 11, '', header_format)
+    worksheet.write(total_row, 12, '', header_format)
+    worksheet.write_formula(total_row, 13, f'=SUM(N13:N{row})', header_format)  # Total gross
+    worksheet.write_formula(total_row, 14, f'=SUM(O13:O{row})', header_format)  # Total after our discount
+    worksheet.write_formula(total_row, 15, f'=SUM(P13:P{row})', header_format)  # Total after client discount
+    worksheet.write(total_row, 16, '', header_format)
+    worksheet.write(total_row, 17, '', header_format)
+
+    # Sum calendar columns
+    for date, col in date_cols.items():
+        worksheet.write_formula(total_row, col, f'=SUM({chr(65 + col)}13:{chr(65 + col)}{row})', header_format)
+
+    # Set column widths (shifted by 1 for campaign column)
+    worksheet.set_column(0, 0, 25)  # Campaign name
+    worksheet.set_column(1, 1, 20)  # Station name
+    worksheet.set_column(2, 2, 15)  # Time slot
+    worksheet.set_column(3, 3, 15)  # Weekday
+    worksheet.set_column(4, 4, 12)  # Spot count
+    worksheet.set_column(5, 5, 12)  # Clip duration
+    worksheet.set_column(6, 9, 12)  # GRP, TRP, affinity, TRP price
+    worksheet.set_column(10, 15, 15)  # Price columns and discounts
+    worksheet.set_column(16, 17, 15)  # Discount percentages
+    worksheet.set_column(18, start_col-1, 12)  # Calendar columns
+
+    workbook.close()
+    output.seek(0)
+
+    return output
+
 def get_live_seasonal_index(station_id, group_id, month):
     """Fetch live seasonal index from external seasonal-adjustments service"""
     import requests
