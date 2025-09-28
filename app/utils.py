@@ -866,9 +866,27 @@ def export_group_to_excel(group):
                     is_weekend=spot.is_weekend_row
                 ).all()
 
+                # Debug: Check all records for this combination
+                print(f"\n--- Group Export Debug for Plan {plan.id}, Station {spot.station.name}, Time {spot.time_slot}, Weekend {spot.is_weekend_row} ---")
+                print(f"  Found {len(all_records)} PlanStationData records")
+
+                for record in all_records:
+                    print(f"    Month {record.month}: seasonal_index = {record.seasonal_index}")
+
+                # Use the first record, but validate all records have the same seasonal_index
                 captured_data = all_records[0] if all_records else None
                 seasonal_index = captured_data.seasonal_index if captured_data else 1.0
                 special_index = captured_data.special_index if captured_data else 1.0
+
+                # Debug: Check if all months have the same seasonal index
+                unique_seasonal_indices = set(record.seasonal_index for record in all_records)
+                if len(unique_seasonal_indices) > 1:
+                    print(f"  WARNING: Multiple seasonal indices found: {unique_seasonal_indices}")
+                    # Use the most recent (highest) value when there are differences
+                    seasonal_index = max(record.seasonal_index for record in all_records)
+                    print(f"  Using highest seasonal_index = {seasonal_index}")
+                else:
+                    print(f"  All months have consistent seasonal_index = {seasonal_index}")
 
                 # Calculate TRP price
                 price_per_trp = (spot.base_price / spot.trp) if spot.trp > 0 else 0

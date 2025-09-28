@@ -829,7 +829,7 @@ def update_plan_seasonal_index(plan_id):
             for plan_data in plan_data_records:
                 old_value = plan_data.seasonal_index
                 plan_data.seasonal_index = new_seasonal_index
-                print(f"  Month {plan_data.month}: {old_value} -> {new_seasonal_index}")
+                print(f"  Updating Plan {plan_id}, Station {station_id}, Time {time_slot}, Month {plan_data.month}: {old_value} -> {new_seasonal_index}")
 
             db.session.commit()
             print(f"Successfully updated {len(plan_data_records)} records")
