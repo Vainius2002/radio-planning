@@ -925,8 +925,8 @@ def export_group_to_excel(group):
             # Calculate price after our discount
             price_after_our_discount = gross_price * (1 - group_data['our_discount'] / 100)
 
-            # Calculate price after client discount
-            price_after_client_discount = price_after_our_discount * (1 - group_data['client_discount'] / 100)
+            # Calculate price after client discount - directly from gross price
+            price_after_client_discount = gross_price * (1 - group_data['client_discount'] / 100)
 
             # Write main data
             worksheet.write(row, 0, group_data['plan_name'], data_format)  # Kampanija
