@@ -957,7 +957,37 @@ def export_group_to_excel(group):
 
             row += 1
 
-    # Add totals row - only up to column R (17) for "Kaina po kliento nuolaidos"
+    # Calculate totals in Python and write actual values
+    total_spots = 0
+    total_grp = 0
+    total_trp = 0
+    total_affinity = 0
+    affinity_count = 0
+    total_gross = 0
+    total_after_our_discount = 0
+    total_after_client_discount = 0
+
+    for key, group_data in all_spot_groups.items():
+        if group_data['total_spots'] > 0:
+            total_spots += group_data['total_spots']
+            total_grp += group_data['grp']
+            total_trp += group_data['trp']
+            total_affinity += group_data['affinity']
+            affinity_count += 1
+
+            # Calculate the same prices as in the data rows
+            gross_price = group_data['total_spots'] * group_data['base_price'] * group_data['seasonal_index'] * group_data['special_index']
+            price_after_our_discount = gross_price * (1 - group_data['our_discount'] / 100)
+            price_after_client_discount = gross_price * (1 - group_data['client_discount'] / 100)
+
+            total_gross += gross_price
+            total_after_our_discount += price_after_our_discount
+            total_after_client_discount += price_after_client_discount
+
+    # Calculate average affinity
+    avg_affinity = total_affinity / affinity_count if affinity_count > 0 else 0
+
+    # Add totals row
     total_row = row + 1
     worksheet.write(total_row, 0, 'Viso:', header_format)
     worksheet.write(total_row, 1, '', header_format)
@@ -965,20 +995,21 @@ def export_group_to_excel(group):
     worksheet.write(total_row, 3, '', header_format)
     worksheet.write(total_row, 4, '', header_format)
 
-    # Sum formulas for totals
-    worksheet.write_formula(total_row, 5, f'=SUM(F13:F{row})', header_format)  # Total spots
-    worksheet.write(total_row, 6, '', header_format)
-    worksheet.write(total_row, 7, '', header_format)
-    worksheet.write_formula(total_row, 8, f'=SUM(I13:I{row})', header_format)  # Total GRP
-    worksheet.write_formula(total_row, 9, f'=SUM(J13:J{row})', header_format)  # Total TRP
-    worksheet.write(total_row, 10, '', header_format)
-    worksheet.write(total_row, 11, '', header_format)
-    worksheet.write(total_row, 12, '', header_format)
-    worksheet.write(total_row, 13, '', header_format)
-    worksheet.write(total_row, 14, '', header_format)
-    worksheet.write_formula(total_row, 15, f'=SUM(P13:P{row})', header_format)  # Total gross
-    worksheet.write_formula(total_row, 16, f'=SUM(Q13:Q{row})', header_format)  # Total after our discount
-    worksheet.write_formula(total_row, 17, f'=SUM(R13:R{row})', header_format)  # Total after client discount
+    # Write calculated totals
+    print(f"Adding totals row {total_row + 1}: spots={total_spots}, grp={total_grp}, trp={total_trp}, avg_affinity={avg_affinity:.2f}")
+    worksheet.write(total_row, 5, total_spots, header_format)  # Total klipų skaičius
+    worksheet.write(total_row, 6, '', header_format)  # Klipo pavadinimas - empty
+    worksheet.write(total_row, 7, '', header_format)  # Klipo trukmė - empty
+    worksheet.write(total_row, 8, total_grp, header_format)  # Total GRP
+    worksheet.write(total_row, 9, total_trp, header_format)  # Total TRP
+    worksheet.write(total_row, 10, round(avg_affinity, 2), header_format)  # Average Affinity
+    worksheet.write(total_row, 11, '', header_format)  # 1 sec. TRP kaina - empty
+    worksheet.write(total_row, 12, '', header_format)  # Įkainis - empty
+    worksheet.write(total_row, 13, '', header_format)  # Sez. indeksas - empty
+    worksheet.write(total_row, 14, '', header_format)  # Spec. indeksas - empty
+    worksheet.write(total_row, 15, total_gross, money_format)  # Total gross kaina
+    worksheet.write(total_row, 16, total_after_our_discount, money_format)  # Total kaina po mūsų nuolaidos
+    worksheet.write(total_row, 17, total_after_client_discount, money_format)  # Total kaina po kliento nuolaidos
     # Do not include columns S and T (18 and 19) in the totals row
 
     # Sum calendar columns
@@ -999,6 +1030,9 @@ def export_group_to_excel(group):
     worksheet.set_column(12, 17, 15)  # Price columns and totals
     worksheet.set_column(18, 19, 15)  # Discount percentages
     worksheet.set_column(20, start_col-1, 12)  # Calendar columns
+
+    # Ensure formulas are calculated
+    workbook.set_calc_mode('automatic')
 
     workbook.close()
     output.seek(0)
