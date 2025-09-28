@@ -1007,14 +1007,12 @@ def export_group_to_excel(group):
     worksheet.write(total_row, 12, '', header_format)  # Įkainis - empty
     worksheet.write(total_row, 13, '', header_format)  # Sez. indeksas - empty
     worksheet.write(total_row, 14, '', header_format)  # Spec. indeksas - empty
-    worksheet.write(total_row, 15, total_gross, money_format)  # Total gross kaina
-    worksheet.write(total_row, 16, total_after_our_discount, money_format)  # Total kaina po mūsų nuolaidos
-    worksheet.write(total_row, 17, total_after_client_discount, money_format)  # Total kaina po kliento nuolaidos
+    worksheet.write(total_row, 15, total_gross, money_blue_format)  # Total gross kaina - with blue background
+    worksheet.write(total_row, 16, total_after_our_discount, money_blue_format)  # Total kaina po mūsų nuolaidos - with blue background
+    worksheet.write(total_row, 17, total_after_client_discount, money_blue_format)  # Total kaina po kliento nuolaidos - with blue background
     # Do not include columns S and T (18 and 19) in the totals row
 
-    # Sum calendar columns
-    for date, col in date_cols.items():
-        worksheet.write_formula(total_row, col, f'=SUM({chr(65 + col)}13:{chr(65 + col)}{row})', header_format)
+    # Do not add calendar column totals - remove the VISO row from calendar columns
 
     # Set column widths for all columns
     worksheet.set_column(0, 0, 25)  # Campaign name
