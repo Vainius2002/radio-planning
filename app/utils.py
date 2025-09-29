@@ -541,6 +541,59 @@ def export_plan_to_excel(plan):
 
             row += 1
 
+    # Calculate totals for the VISO row
+    total_spots = 0
+    total_grp = 0
+    total_trp = 0
+    total_affinity = 0
+    affinity_count = 0
+    total_gross = 0
+    total_after_our_discount = 0
+    total_after_client_discount = 0
+
+    for key, group_data in spot_groups.items():
+        if group_data['total_spots'] > 0:
+            total_spots += group_data['total_spots']
+            total_grp += group_data['grp']
+            total_trp += group_data['trp']
+            total_affinity += group_data['affinity']
+            affinity_count += 1
+
+            # Calculate the same prices as in the data rows
+            gross_price = group_data['total_spots'] * group_data['base_price'] * group_data['seasonal_index'] * group_data['special_index']
+            price_after_our_discount = gross_price * (1 - plan.our_discount / 100)
+            price_after_client_discount = price_after_our_discount * (1 - plan.client_discount / 100)
+
+            total_gross += gross_price
+            total_after_our_discount += price_after_our_discount
+            total_after_client_discount += price_after_client_discount
+
+    # Calculate average affinity
+    avg_affinity = total_affinity / affinity_count if affinity_count > 0 else 0
+
+    # Add VISO totals row with blue formatting
+    if row > 12:  # Only add if there's data
+        viso_row = row + 1
+        worksheet.write(viso_row, 0, 'Viso:', data_blue_format)  # Kanalas
+        worksheet.write(viso_row, 1, '', data_blue_format)  # Laikas
+        worksheet.write(viso_row, 2, '', data_blue_format)  # Savaitės diena
+        worksheet.write(viso_row, 3, total_spots, data_blue_format)  # Total klipų skaičius
+        worksheet.write(viso_row, 4, '', data_blue_format)  # Klipo trukmė - empty
+        worksheet.write(viso_row, 5, total_grp, data_blue_format)  # Total GRP
+        worksheet.write(viso_row, 6, total_trp, data_blue_format)  # Total TRP
+        worksheet.write(viso_row, 7, round(avg_affinity, 2), data_blue_format)  # Average Affinity
+        worksheet.write(viso_row, 8, '', data_blue_format)  # 1 sec TRP kaina - empty
+        worksheet.write(viso_row, 9, '', data_blue_format)  # Įkainis - empty
+        worksheet.write(viso_row, 10, '', data_blue_format)  # Sez. indeksas - empty
+        worksheet.write(viso_row, 11, '', data_blue_format)  # Spec. indeksas - empty
+        worksheet.write(viso_row, 12, total_gross, money_blue_format)  # Total Gross kaina
+        worksheet.write(viso_row, 13, total_after_our_discount, money_blue_format)  # Total Kaina po mūsų nuolaidos
+        worksheet.write(viso_row, 14, total_after_client_discount, money_blue_format)  # Total Kaina po kliento nuolaidos
+        worksheet.write(viso_row, 15, '', data_blue_format)  # Mūsų nuolaida % - empty
+        worksheet.write(viso_row, 16, '', data_blue_format)  # Kliento nuolaida % - empty
+
+        print(f"Added VISO totals row to plan export: spots={total_spots}, grp={total_grp}, trp={total_trp}, avg_affinity={avg_affinity:.2f}")
+
     # Auto-fit columns
     worksheet.set_column(0, 0, 20)  # Station name
     worksheet.set_column(1, 1, 12)  # Time
